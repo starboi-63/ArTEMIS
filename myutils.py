@@ -33,6 +33,8 @@ def init_meters(loss_str):
 
 def eval_metrics(output, gt, psnrs, ssims):
     """
+    Average the metrics across 3 interpolated frames
+
     output: interpolated images produced by model
     gt: ground truth. What output will be compared against.
     psnrs: AverageMeter
@@ -40,13 +42,15 @@ def eval_metrics(output, gt, psnrs, ssims):
 
     PSNR should be calculated for each image, since sum(log) =/= log(sum).
     """
-    for b in range(gt.size(0)):
-        psnr = calc_psnr(output[b], gt[b])
-        psnrs.update(psnr)
-
-        ssim = calc_ssim(output[b].unsqueeze(0).clamp(
-            0, 1), gt[b].unsqueeze(0).clamp(0, 1), val_range=1.)
-        ssims.update(ssim)
+    for b in range(gt[0].size(0)):
+        psnr = 0.0
+        ssim = 0.0
+        for i in range(len(gt)):
+            psnr += calc_psnr(output[i][b], gt[i][b])
+            ssim += calc_ssim(output[b].unsqueeze(0).clamp(
+                0, 1), gt[b].unsqueeze(0).clamp(0, 1), val_range=1.)
+        psnrs.update(psnr / 3)
+        ssims.update(ssim / 3)
 
 
 def init_losses(loss_str):
