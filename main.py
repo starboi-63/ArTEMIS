@@ -133,7 +133,9 @@ def test(args, epoch):
             images = [img_.to(device) for img_ in images]
             gt = gt_images.to(device)
 
-            out = model(images)  # images is a list of neighboring frames
+            # images is a list of neighboring frames
+            # TODO: Add hyperparameter bullshit: delta_t
+            out = [model(images), model(images), model(images)]
 
             # Save loss values
             # loss, loss_specific = criterion(out, gt)
