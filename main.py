@@ -90,6 +90,8 @@ def train(args, epoch):
         # Option 1: Average 3 losses for each frame
         # Option 2: Have 3 losses for each frame to backprop
 
+        # ********************************************************************************
+        # need to also pass in temporally flipped interpolated frames to loss calculations
         loss0, _ = criterion(out[0], gt[0])
         loss1, _ = criterion(out[1], gt[1])
         loss2, _ = criterion(out[2], gt[2])
@@ -139,6 +141,9 @@ def test(args, epoch):
 
             # Save loss values
             # loss, loss_specific = criterion(out, gt)
+            
+            # ********************************************************************************
+            # need to also pass in temporally flipped interpolated frames to loss calculations
             loss0, loss_specific0 = criterion(out[0], gt[0])
             loss1, loss_specific1 = criterion(out[1], gt[1])
             loss2, loss_specific2 = criterion(out[2], gt[2])
