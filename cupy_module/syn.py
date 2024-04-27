@@ -1,16 +1,7 @@
 import cupy
 import torch 
 import re
-# import math
-
-# torch.cuda.current_stream() is a function that returns the current CUDA stream for the default CUDA device. 
-# A CUDA stream is a sequence of operations that execute on the GPU in the order they were issued by the host (CPU). 
-# This allows for concurrent execution of operations where possible, such as overlapping data transfers with computations.
-# .cuda_stream is an attribute of the object returned by torch.cuda.current_stream(). 
-# It likely represents the actual underlying CUDA stream object (often a pointer or a low-level handler) that interfaces directly with the CUDA driver API.
-
-class Stream: 
-    ptr = torch.cuda.current_stream().cuda_stream
+import math
 
 kernel_Syn_updateOutput = '''
 extern "C" __global__ void kernel_Syn_updateOutput(
@@ -224,7 +215,7 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
         strTensor = objMatch.group(4)
         intSizes = objVars[strTensor].size()
 
-        strKernel = strKernel.replace(objMatch.group(), str(intSizes[intArg]))
+        strKernel = strKernel.replace(objMatch.group(0), str(intSizes[intArg]))
 
     # purpose: getting value at certain index of tensor, ex. tensor[index]
     while True:
@@ -240,7 +231,7 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
         intStrides = objVars[strTensor].stride()
         strIndex = ['((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg]) + ')' for intArg in range(intArgs)]
 
-        strKernel = strKernel.replace(objMatch.group(), strTensor + '[' + str.join('+', strIndex) + ']')
+        strKernel = strKernel.replace(objMatch.group(0), strTensor + '[' + str.join('+', strIndex) + ']')
 
     # purpose: clamp a given value to the range [0, upperBound] 
     while True: 
@@ -254,7 +245,7 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 
         clamped = min(max(value, 0), upperBound)
 
-        strKernel = strKernel.replace(objMatch.group(), str(clamped))
+        strKernel = strKernel.replace(objMatch.group(0), str(clamped))
 
     # setting macros
     strKernel = strKernel.replace('F_SIZE', str(intFilterSize))
@@ -266,4 +257,132 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 def cupy_launch(strFunc, strKernel):
     return cupy.cuda.compile_with_cache(strKernel).get_function(strFunc)
 
+class FunctionSyn(torch.autograd.Function): 
+    @staticmethod
+    def forward(context, input, weight, offset_y, offset_x, dilation): 
+        context.save_for_backward(input, weight, offset_y, offset_x)
+        context.dilation = dilation
 
+        intSample = input.size(0)
+        intInputDepth = input.size(1)
+        intInputHeight = input.size(2)
+        intInputWidth = input.size(3)
+        intFilterSize = int(math.sqrt(weight.size(1)))
+        intOutputHeight = weight.size(2)
+        intOutputWidth = weight.size(3)
+
+        assert (intInputHeight - ((intFilterSize - 1) * dilation + 1) == intOutputHeight - 1)
+        assert (intInputWidth - ((intFilterSize - 1) * dilation + 1) == intOutputWidth - 1)
+
+        assert (input.is_contiguous() == True)
+        assert (weight.is_contiguous() == True)
+        assert (offset_y.is_contiguous() == True)
+        assert (offset_x.is_contiguous() == True)
+
+        output = input.new_zeros(intSample, intInputDepth, intOutputHeight, intOutputWidth)
+
+        if input.is_cuda: 
+            # torch.cuda.current_stream() is a function that returns the current CUDA stream for the default CUDA device. 
+            # A CUDA stream is a sequence of operations that execute on the GPU in the order they were issued by the host (CPU). 
+            # This allows for concurrent execution of operations where possible, such as overlapping data transfers with computations.
+            # .cuda_stream is an attribute of the object returned by torch.cuda.current_stream(). 
+            # It likely represents the actual underlying CUDA stream object (often a pointer or a low-level handler) that interfaces directly with the CUDA driver API.
+
+            class Stream: 
+                ptr = torch.cuda.current_stream().cuda_stream
+
+            n = output.nelement()
+            cupy_launch('kernel_Syn_updateOutput', cupy_kernel('kernel_Syn_updateOutput', intFilterSize, dilation, {
+                'input': input,
+                'weight': weight,
+                'offset_y': offset_y,
+                'offset_x': offset_x,
+                'output': output
+            }))(
+                grid=tuple([math.ceil(n / 512), 1, 1]),
+                block=tuple([512, 1, 1]),
+                args=[n, input.data_ptr(), weight.data_ptr(), offset_y.data_ptr(), offset_x.data_ptr(), output.data_ptr()],
+                stream=Stream
+            )
+        else: 
+            raise NotImplementedError()
+
+        return output
+    
+    @staticmethod
+    def backward(context, gradOutput):
+        input, weight, offset_y, offset_x = context.saved_tensors
+        dilation = context.dilation
+
+        intSample = input.size(0)
+        intInputDepth = input.size(1)
+        intInputHeight = input.size(2)
+        intInputWidth = input.size(3)
+        intFilterSize = int(math.sqrt(weight.size(1)))
+        intOutputHeight = weight.size(2)
+        intOutputWidth = weight.size(3)
+
+        assert (intInputHeight - ((intFilterSize - 1) * dilation + 1) == intOutputHeight - 1)
+        assert (intInputWidth - ((intFilterSize - 1) * dilation + 1) == intOutputWidth - 1)
+
+        assert (gradOutput.is_contiguous() == True)
+
+        gradInput = input.new_zeros(intSample, intInputDepth, intInputHeight, intInputWidth) if context.needs_input_grad[0] else None
+        gradWeight = input.new_zeros(intSample, intFilterSize ** 2, intOutputHeight, intOutputWidth) if context.needs_input_grad[1] else None
+        gradOffset_y = input.new_zeros(intSample, intFilterSize ** 2, intOutputHeight, intOutputWidth) if context.needs_input_grad[2] else None
+        gradOffset_x = input.new_zeros(intSample, intFilterSize ** 2, intOutputHeight, intOutputWidth) if context.needs_input_grad[2] else None
+
+        if input.is_cuda:
+            class Stream:
+                ptr = torch.cuda.current_stream().cuda_stream
+
+            # weight grad
+            n = gradWeight.nelement()
+            cupy_launch('kernel_Syn_updateGradWeight', cupy_kernel('kernel_Syn_updateGradWeight', intFilterSize, dilation, {
+                'gradLoss': gradOutput,
+                'input': input,
+                'offset_y': offset_y,
+                'offset_x': offset_x,
+                'gradWeight': gradWeight
+            }))(
+                grid=tuple([math.ceil(n / 512), 1, 1]),
+                block=tuple([512, 1, 1]),
+                args=[n, gradOutput.data_ptr(), input.data_ptr(), offset_y.data_ptr(), offset_x.data_ptr(), gradWeight.data_ptr()],
+                stream=Stream
+            )
+
+            # alpha grad
+            n = gradOffset_y.nelement()
+            cupy_launch('kernel_Syn_updateGradAlpha', cupy_kernel('kernel_Syn_updateGradAlpha', intFilterSize, dilation, {
+                'gradLoss': gradOutput,
+                'input': input,
+                'weight': weight,
+                'offset_y': offset_y,
+                'offset_x': offset_x,
+                'gradOffset_y': gradOffset_y
+            }))(
+                grid=tuple([math.ceil(n / 512), 1, 1]),
+                block=tuple([512, 1, 1]),
+                args=[n, gradOutput.data_ptr(), input.data_ptr(), weight.data_ptr(), offset_y.data_ptr(), offset_x.data_ptr(), gradOffset_y.data_ptr()],
+                stream=Stream
+            )
+
+            # beta grad
+            n = gradOffset_x.nelement()
+            cupy_launch('kernel_AdaCoF_updateGradBeta', cupy_kernel('kernel_AdaCoF_updateGradBeta', intFilterSize, dilation, {
+                'gradLoss': gradOutput,
+                'input': input,
+                'weight': weight,
+                'offset_y': offset_y,
+                'offset_x': offset_x,
+                'gradOffset_x': gradOffset_x
+            }))(
+                grid=tuple([math.ceil(n / 512), 1, 1]),
+                block=tuple([512, 1, 1]),
+                args=[n, gradOutput.data_ptr(), input.data_ptr(), weight.data_ptr(), offset_y.data_ptr(), offset_x.data_ptr(), gradOffset_x.data_ptr()],
+                stream=Stream
+            )
+        else:
+            raise NotImplementedError()
+
+        return gradInput, gradWeight, gradOffset_y, gradOffset_x, None
