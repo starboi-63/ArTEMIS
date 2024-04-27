@@ -29,10 +29,10 @@ extern "C" __global__ void kernel_Syn_updateOutput(
                 int intAlpha    = (int)alpha;
                 int intBeta     = (int)beta;
 
-                int bottom = CLAMP(y + row*DILATION + intAlpha, SIZE_2(input) - 1);
-                int left = CLAMP(x + col*DILATION + intBeta, SIZE_3(input) - 1);
-                int top = CLAMP(y + row*DILATION + intAlpha + 1, SIZE_2(input) - 1);
-                int right = CLAMP(x + col*DILATION + intBeta + 1, SIZE_3(input) - 1);
+                int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
+                int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
+                int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
+                int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
                 float alphaTrunc = alpha - (float)intAlpha;
                 float betaTrunc = beta - (float)intBeta;
@@ -79,10 +79,10 @@ extern "C" __global__ void kernel_AdaCoF_updateGradWeight(
             int intAlpha    = (int)alpha;
             int intBeta     = (int)beta;
 
-            int bottom = CLAMP(y + row*DILATION + intAlpha, SIZE_2(input) - 1);
-            int left = CLAMP(x + col*DILATION + intBeta, SIZE_3(input) - 1);
-            int top = CLAMP(y + row*DILATION + intAlpha + 1, SIZE_2(input) - 1);
-            int right = CLAMP(x + col*DILATION + intBeta + 1, SIZE_3(input) - 1);
+            int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
+            int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
+            int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
+            int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
             float alphaTrunc = alpha - (float)intAlpha;
             float betaTrunc = beta - (float)intBeta;
@@ -130,10 +130,10 @@ extern "C" __global__ void kernel_AdaCoF_updateGradAlpha(
             int intAlpha    = (int)alpha;
             int intBeta     = (int)beta;
 
-            int bottom = CLAMP(y + row*DILATION + intAlpha, SIZE_2(input) - 1);
-            int left = CLAMP(x + col*DILATION + intBeta, SIZE_3(input) - 1);
-            int top = CLAMP(y + row*DILATION + intAlpha + 1, SIZE_2(input) - 1);
-            int right = CLAMP(x + col*DILATION + intBeta + 1, SIZE_3(input) - 1);
+            int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
+            int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
+            int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
+            int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
             betaTrunc = beta - (float)intBeta;
 
@@ -180,10 +180,10 @@ extern "C" __global__ void kernel_AdaCoF_updateGradBeta(
             int intAlpha    = (int)alpha;
             int intBeta     = (int)beta;
 
-            int bottom = CLAMP(y + row*DILATION + intAlpha, SIZE_2(input) - 1);
-            int left = CLAMP(x + col*DILATION + intBeta, SIZE_3(input) - 1);
-            int top = CLAMP(y + row*DILATION + intAlpha + 1, SIZE_2(input) - 1);
-            int right = CLAMP(x + col*DILATION + intBeta + 1, SIZE_3(input) - 1);
+            int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
+            int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
+            int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
+            int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
             alphaTrunc = alpha - (float)intAlpha;
 
@@ -233,19 +233,21 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 
         strKernel = strKernel.replace(objMatch.group(0), strTensor + '[' + str.join('+', strIndex) + ']')
 
-    # purpose: clamp a given value to the range [0, upperBound] 
+    # purpose: integer clamp a given value to the range [0, upperBound]
     while True: 
         objMatch = re.search('(CLAMP)(\()([^\)]*)(\))', strKernel)
 
         if objMatch is None: 
             break
 
-        strValue, strUpperBound = objMatch.group(3).split(',')
-        value, upperBound = float(strValue), float(strUpperBound)
+        strArgs = objMatch.group(3).split(',')
+        
+        assert (len(strArgs) == 3)
 
-        clamped = min(max(value, 0), upperBound)
+        strValue, strLowerBound, strUpperBound = strArgs
+        strReplacement = f"min(max({strValue}, {strLowerBound}), {strUpperBound})"
 
-        strKernel = strKernel.replace(objMatch.group(0), str(clamped))
+        strKernel = strKernel.replace(objMatch.group(0), strReplacement)
 
     # setting macros
     strKernel = strKernel.replace('F_SIZE', str(intFilterSize))
