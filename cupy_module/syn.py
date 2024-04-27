@@ -208,3 +208,62 @@ extern "C" __global__ void kernel_AdaCoF_updateGradBeta(
     } 
 }
 '''
+
+def cupy_kernel(strFunc, intFilterSize, intDilation, objVars): 
+    strKernel = globals()[strFunc]
+
+    # purpose: getting size of tensor axis
+    while True: 
+        objMatch = re.search('(SIZE_)([0-4])(\()([^\)]*)(\))', strKernel)
+
+        if objMatch is None: 
+            break
+
+        intArg = int(objMatch.group(2))
+
+        strTensor = objMatch.group(4)
+        intSizes = objVars[strTensor].size()
+
+        strKernel = strKernel.replace(objMatch.group(), str(intSizes[intArg]))
+
+    # purpose: getting value at certain index of tensor, ex. tensor[index]
+    while True:
+        objMatch = re.search('(VALUE_)([0-4])(\()([^\)]+)(\))', strKernel)
+
+        if objMatch is None:
+            break
+
+        intArgs = int(objMatch.group(2))
+        strArgs = objMatch.group(4).split(',')
+
+        strTensor = strArgs[0]
+        intStrides = objVars[strTensor].stride()
+        strIndex = ['((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg]) + ')' for intArg in range(intArgs)]
+
+        strKernel = strKernel.replace(objMatch.group(), strTensor + '[' + str.join('+', strIndex) + ']')
+
+    # purpose: clamp a given value to the range [0, upperBound] 
+    while True: 
+        objMatch = re.search('(CLAMP)(\()([^\)]+)(\))', strKernel)
+
+        if objMatch is None: 
+            break
+
+        strValue, strUpperBound = objMatch.group(3).split(',')
+        value, upperBound = float(strValue), float(strUpperBound)
+
+        clamped = min(max(value, 0), upperBound)
+
+        strKernel = strKernel.replace(objMatch.group(), str(clamped))
+
+    # setting macros
+    strKernel = strKernel.replace('F_SIZE', str(intFilterSize))
+    strKernel = strKernel.replace('DILATION', str(intDilation))
+
+    return strKernel
+
+@cupy.util.memoize(for_each_device=True)
+def cupy_launch(strFunc, strKernel):
+    return cupy.cuda.compile_with_cache(strKernel).get_function(strFunc)
+
+
