@@ -235,7 +235,7 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 
     # purpose: clamp a given value to the range [0, upperBound] 
     while True: 
-        objMatch = re.search('(CLAMP)(\()([^\)]+)(\))', strKernel)
+        objMatch = re.search('(CLAMP)(\()([^\)]*)(\))', strKernel)
 
         if objMatch is None: 
             break
