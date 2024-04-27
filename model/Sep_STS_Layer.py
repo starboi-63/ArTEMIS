@@ -12,18 +12,18 @@ from einops.layers.torch import Rearrange
 class Mlp(nn.Module):
     """ Multilayer perceptron."""
 
-    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU):
+    def __init__(self, in_features, hidden_features=None, out_features=None, activation=nn.GELU):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
-        self.fc1 = nn.Linear(in_features, hidden_features)
-        self.act = act_layer()
-        self.fc2 = nn.Linear(hidden_features, out_features)
+        self.linear1 = nn.Linear(in_features, hidden_features)
+        self.activation = activation()
+        self.linear2 = nn.Linear(hidden_features, out_features)
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = self.act(x)
-        x = self.fc2(x)
+        x = self.linear1(x)
+        x = self.activation(x)
+        x = self.linear2(x)
         return x
 
 
@@ -35,10 +35,17 @@ def window_partition(x, window_size):
     Returns:
         windows: (B*num_windows, window_size*window_size, C)
     """
+    # Batch, Depth, Height, Width, Channel (channel remains untouched throughout the process)
     B, D, H, W, C = x.shape
-    x = x.view(B, D // window_size[0], window_size[0], H // window_size[1], window_size[1], W // window_size[2],
-               window_size[2], C)
-    windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, reduce(mul, window_size), C)
+    # Divide the three spatial dimensions (D, H, W) into windows
+    x = x.view(B, D // window_size[0], window_size[0], H // window_size[1], window_size[1], W // window_size[2], window_size[2], C)
+    # Rearrange the data to be of shape (B, num_windows_along_D, num_windows_along_H, num_windows_along_W, window_size[0], window_size[1], window_size[2], C)
+    windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7)
+    # Align memory contiguously
+    windows = windows.contiguous()
+    # Merge the spatial dimensions into one dimension, so that the final result is (B*num_windows, window_size*window_size, C)
+    windows = windows.view(-1, reduce(mul, window_size), C)
+
     return windows
 
 
