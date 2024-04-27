@@ -1,2 +1,2 @@
-# ArKTICVF
-Arbitrary Kernel-supplemented Transformer for Interpolation of Consecutive Video Frames
+# ArTEMIS
+Arbitrary-timestep Transformer Enabling Multi-frame Interpolation and Synthesis
