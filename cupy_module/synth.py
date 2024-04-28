@@ -3,8 +3,8 @@ import torch
 import re
 import math
 
-kernel_Syn_updateOutput = '''
-extern "C" __global__ void kernel_Syn_updateOutput(
+kernel_Synth_updateOutput = '''
+extern "C" __global__ void kernel_Synth_updateOutput(
         const int n,
         const float* input,
         const float* weight, 
@@ -51,8 +51,8 @@ extern "C" __global__ void kernel_Syn_updateOutput(
 }
 '''
 
-kernel_Syn_updateGradWeight = '''
-extern "C" __global__ void kernel_Syn_updateGradWeight(
+kernel_Synth_updateGradWeight = '''
+extern "C" __global__ void kernel_Synth_updateGradWeight(
     const int n,
     const float* gradLoss,
     const float* input,
@@ -100,8 +100,8 @@ extern "C" __global__ void kernel_Syn_updateGradWeight(
 }
 '''
 
-kernel_Syn_updateGradAlpha = '''
-extern "C" __global__ void kernel_Syn_updateGradAlpha(
+kernel_Synth_updateGradAlpha = '''
+extern "C" __global__ void kernel_Synth_updateGradAlpha(
     const int n,
     const float* gradLoss,
     const float* input,
@@ -150,8 +150,8 @@ extern "C" __global__ void kernel_Syn_updateGradAlpha(
 }
 '''
 
-kernel_Syn_updateGradBeta = '''
-extern "C" __global__ void kernel_Syn_updateGradBeta(
+kernel_Synth_updateGradBeta = '''
+extern "C" __global__ void kernel_Synth_updateGradBeta(
     const int n,
     const float* gradLoss,
     const float* input,
@@ -259,7 +259,7 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 def cupy_launch(strFunc, strKernel):
     return cupy.cuda.compile_with_cache(strKernel).get_function(strFunc)
 
-class FunctionSyn(torch.autograd.Function): 
+class FunctionSynth(torch.autograd.Function): 
     @staticmethod
     def forward(context, input, weight, offset_y, offset_x, dilation): 
         context.save_for_backward(input, weight, offset_y, offset_x)
@@ -294,7 +294,7 @@ class FunctionSyn(torch.autograd.Function):
                 ptr = torch.cuda.current_stream().cuda_stream
 
             n = output.nelement()
-            cupy_launch('kernel_Syn_updateOutput', cupy_kernel('kernel_Syn_updateOutput', intFilterSize, dilation, {
+            cupy_launch('kernel_Synth_updateOutput', cupy_kernel('kernel_Synth_updateOutput', intFilterSize, dilation, {
                 'input': input,
                 'weight': weight,
                 'offset_y': offset_y,
@@ -340,7 +340,7 @@ class FunctionSyn(torch.autograd.Function):
 
             # weight grad
             n = gradWeight.nelement()
-            cupy_launch('kernel_Syn_updateGradWeight', cupy_kernel('kernel_Syn_updateGradWeight', intFilterSize, dilation, {
+            cupy_launch('kernel_Synth_updateGradWeight', cupy_kernel('kernel_Synth_updateGradWeight', intFilterSize, dilation, {
                 'gradLoss': gradOutput,
                 'input': input,
                 'offset_y': offset_y,
@@ -355,7 +355,7 @@ class FunctionSyn(torch.autograd.Function):
 
             # alpha grad
             n = gradOffset_y.nelement()
-            cupy_launch('kernel_Syn_updateGradAlpha', cupy_kernel('kernel_Syn_updateGradAlpha', intFilterSize, dilation, {
+            cupy_launch('kernel_Synth_updateGradAlpha', cupy_kernel('kernel_Synth_updateGradAlpha', intFilterSize, dilation, {
                 'gradLoss': gradOutput,
                 'input': input,
                 'weight': weight,
