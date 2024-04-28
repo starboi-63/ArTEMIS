@@ -60,7 +60,7 @@ print('the number of network parameters: {}'.format(total_params))
 ##### Define Loss & Optimizer #####
 criterion = Loss(args)
 
-# ToDo: Different learning rate schemes for different parameters
+# TODO: Different learning rate schemes for different parameters
 optimizer = Adamax(model.parameters(), lr=args.lr,
                    betas=(args.beta1, args.beta2))
 
@@ -136,8 +136,8 @@ def test(args, epoch):
             gt = gt_images.to(device)
 
             # images is a list of neighboring frames
-            # TODO: Add hyperparameter bullshit: delta_t
-            out = [model(images), model(images), model(images)]
+            # TODO:
+            out = model(images)
 
             # Save loss values
             # loss, loss_specific = criterion(out, gt)
@@ -148,7 +148,13 @@ def test(args, epoch):
             loss1, loss_specific1 = criterion(out[1], gt[1])
             loss2, loss_specific2 = criterion(out[2], gt[2])
             overall_loss = (loss0 + loss1 + loss2) / 3
+            loss_specific = {
+                'type': loss_specific0['type'],
+                'weight': loss_specific0['weight'],
+                'function': loss_specific0['function']
+            }
 
+            # Save loss values
             for k, v in losses.items():
                 if k != 'total':
                     # TODO: idk what loss_specific does
