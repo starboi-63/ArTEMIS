@@ -31,7 +31,7 @@ class GDL(torch.nn.Module):
     # gt :: ground truth frame 
     # add alpha term? 
     def forward(self, interp, interp_flipped, gt): 
-        # assuming dimensions are B x T x C x H x W
+        # assuming dimensions are B x C x T x H x W
         x = torch.abs(torch.diff(interp, dim=0) - torch.diff(gt, dim=0))
         y = torch.abs(torch.diff(interp, dim=1) - torch.diff(gt, dim=1))
 
