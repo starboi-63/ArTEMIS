@@ -52,7 +52,7 @@ extern "C" __global__ void kernel_Syn_updateOutput(
 '''
 
 kernel_Syn_updateGradWeight = '''
-extern "C" __global__ void kernel_AdaCoF_updateGradWeight(
+extern "C" __global__ void kernel_Syn_updateGradWeight(
     const int n,
     const float* gradLoss,
     const float* input,
@@ -101,7 +101,7 @@ extern "C" __global__ void kernel_AdaCoF_updateGradWeight(
 '''
 
 kernel_Syn_updateGradAlpha = '''
-extern "C" __global__ void kernel_AdaCoF_updateGradAlpha(
+extern "C" __global__ void kernel_Syn_updateGradAlpha(
     const int n,
     const float* gradLoss,
     const float* input,
@@ -151,7 +151,7 @@ extern "C" __global__ void kernel_AdaCoF_updateGradAlpha(
 '''
 
 kernel_Syn_updateGradBeta = '''
-extern "C" __global__ void kernel_AdaCoF_updateGradBeta(
+extern "C" __global__ void kernel_Syn_updateGradBeta(
     const int n,
     const float* gradLoss,
     const float* input,
