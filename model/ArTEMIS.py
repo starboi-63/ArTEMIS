@@ -4,7 +4,7 @@ from model.SEP_STS_Encoder import ResBlock
 
 
 class ArTEMIS(nn.Module):
-    def __init__(self, num_inputs=4, joinType="concat", kernel_scale=5, dilation=1, delta_t=0.5):
+    def __init__(self, num_inputs=4, num_outputs=1, joinType="concat", kernel_size=5, dilation=1):
         super().__init__()
 
         num_features = [192, 128, 64, 32]
@@ -13,7 +13,7 @@ class ArTEMIS(nn.Module):
         num_heads = [2, 4, 8, 16]  # For Multi-Head Attention
         self.joinType = joinType
         self.n_inputs = num_inputs
-        self.n_outputs = num_outputs
+        self.delta_t = 1 / (num_outputs + 1)
 
         growth = 2 if joinType == "concat" else 1
         self.lrelu = nn.LeakyReLU(0.2, inplace=True)
