@@ -27,8 +27,10 @@ class Mlp(nn.Module):
         return x
 
 
-def window_partition(x, window_size):
+def input_to_windows(x, window_size):
     """
+    Partition the input tensor into windows for localized multi-headed self attention.
+    
     Args:
         x: (B, D, H, W, C)
         window_size (tuple[int]): window size
@@ -49,36 +51,47 @@ def window_partition(x, window_size):
     return windows
 
 
-def window_reverse(windows, window_size, B, D, H, W):
+def windows_to_input(windows, window_size, B, D, H, W):
     """
+    Rearrange the windowed input back to an original input tensor shape.
+   
     Args:
-        windows: (B*num_windows, window_size, window_size, C)
+        windows: (B*num_windows, window_size*window_size, C)
         window_size (tuple[int]): Window size
         H (int): Height of image
         W (int): Width of image
     Returns:
         x: (B, D, H, W, C)
     """
-    x = windows.view(B, D // window_size[0], H // window_size[1], W // window_size[2], window_size[0], window_size[1],
-                     window_size[2], -1)
-    x = x.permute(0, 1, 4, 2, 5, 3, 6, 7).contiguous().view(B, D, H, W, -1)
+    # Extract flattened windowed dimensions into original shapes
+    x = windows.view(B, D // window_size[0], H // window_size[1], W // window_size[2], window_size[0], window_size[1], window_size[2], -1)
+    # Rearrange the data to be of shape (B, num_windows_along_D, window_size[0], num_windows_along_H, window_size[1], num_windows_along_W, window_size[2], C)
+    x = x.permute(0, 1, 4, 2, 5, 3, 6, 7)
+    # Align memory contiguously
+    x = x.contiguous()
+    # Merge the spatial dimensions into one dimension, so that the final result is (B, D, H, W, C)
+    x = x.view(B, D, H, W, -1)
+
     return x
 
 
 def get_window_size(x_size, window_size, shift_size=None):
-    use_window_size = list(window_size)
+    corrected_window_size = list(window_size)
+
     if shift_size is not None:
-        use_shift_size = list(shift_size)
+        corrected_shift_size = list(shift_size)
+
     for i in range(len(x_size)):
         if x_size[i] <= window_size[i]:
-            use_window_size[i] = x_size[i]
+            corrected_window_size[i] = x_size[i]
+
             if shift_size is not None:
-                use_shift_size[i] = 0
+                corrected_shift_size[i] = 0
 
     if shift_size is None:
-        return tuple(use_window_size)
+        return tuple(corrected_window_size)
     else:
-        return tuple(use_window_size), tuple(use_shift_size)
+        return tuple(corrected_window_size), tuple(corrected_shift_size)
 
 
 class WindowAttention3D(nn.Module):
