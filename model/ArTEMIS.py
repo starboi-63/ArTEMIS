@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from model.SEP_STS_Encoder import ResBlock
 
-class ArKTICVF(nn.Module):
+class ArTEMIS(nn.Module):
     def __init__(self, num_inputs=4, num_outputs=1, joinType="concat", kernel_scale=5, dilation=1):
         super().__init__()
 
