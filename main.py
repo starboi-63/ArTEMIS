@@ -39,7 +39,7 @@ if args.cuda:
     torch.cuda.manual_seed(args.random_seed)
 
 if args.dataset == "vimeo90K_septuplet":
-    from dataset.vimeo90k_septuplet import get_loader
+    from dataset.vimeo90k_septuplet_process import get_loader
     train_loader = get_loader(
         'train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_loader = get_loader('test', args.data_root, args.test_batch_size,
@@ -47,9 +47,12 @@ if args.dataset == "vimeo90K_septuplet":
 else:
     raise NotImplementedError
 
-# TODO: add VFIT_S
 print("Building model: %s" % args.model)
-model = ArTEMIS(n_inputs=args.nbr_frame, joinType=args.joinType)
+# number of outputs = 1 implicitly
+# Important parameters: num_inputs=4, num_outputs=3
+# Based on the
+model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType,
+                kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
 model = torch.nn.DataParallel(model).to(device)
 total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print('the number of network parameters: {}'.format(total_params))
@@ -77,7 +80,6 @@ def train(args, epoch):
         optimizer.zero_grad()
 
         # out should be a list of the 3 interpolated frames 0.25, 0.5, 0.75
-        delta_t = 1 / (n + 1)
         out_ll, out_l, out1 = model(images, t=delta_t)
         out_ll, out_l, out2 = model(images, t=2*delta_t)
         out_ll, out_l, out3 = model(images, t=3*delta_t)
