@@ -1,3 +1,4 @@
+from model import ArTEMIS
 from torch.optim import Adamax
 import time
 
@@ -47,14 +48,8 @@ else:
     raise NotImplementedError
 
 # TODO: add VFIT_S
-# We choose to use the small model --> less parameters
-if args.model == 'VFIT_S':
-    from model.VFIT_S import UNet_3D_3D
-# elif args.model == 'VFIT_B':
-#     from model.VFIT_B import UNet_3D_3D
-
 print("Building model: %s" % args.model)
-model = UNet_3D_3D(n_inputs=args.nbr_frame, joinType=args.joinType)
+model = ArTEMIS(n_inputs=args.nbr_frame, joinType=args.joinType)
 model = torch.nn.DataParallel(model).to(device)
 total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print('the number of network parameters: {}'.format(total_params))
@@ -82,7 +77,11 @@ def train(args, epoch):
         optimizer.zero_grad()
 
         # out should be a list of the 3 interpolated frames 0.25, 0.5, 0.75
-        out_ll, out_l, out = model(images)
+        delta_t = 1 / (n + 1)
+        out_ll, out_l, out1 = model(images, t=delta_t)
+        out_ll, out_l, out2 = model(images, t=2*delta_t)
+        out_ll, out_l, out3 = model(images, t=3*delta_t)
+        out = [out1, out2, out3]
 
         gt = gt_images.to(device)
 
@@ -141,7 +140,7 @@ def test(args, epoch):
 
             # Save loss values
             # loss, loss_specific = criterion(out, gt)
-            
+
             # ********************************************************************************
             # need to also pass in temporally flipped interpolated frames to loss calculations
             loss0, loss_specific0 = criterion(out[0], gt[0])
