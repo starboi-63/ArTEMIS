@@ -50,7 +50,7 @@ else:
 print("Building model: %s" % args.model)
 # number of outputs = 1 implicitly
 # Important parameters: num_inputs=4, num_outputs=3
-# Based on the
+# Model can calculate delta_t, the perceived timestep between each frame, including inputs and outputs
 model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType,
                 kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
 model = torch.nn.DataParallel(model).to(device)
@@ -79,11 +79,8 @@ def train(args, epoch):
         # Forward
         optimizer.zero_grad()
 
-        # out should be a list of the 3 interpolated frames 0.25, 0.5, 0.75
-        out_ll, out_l, out1 = model(images, t=delta_t)
-        out_ll, out_l, out2 = model(images, t=2*delta_t)
-        out_ll, out_l, out3 = model(images, t=3*delta_t)
-        out = [out1, out2, out3]
+        # out should be a list of the 3 interpolated frames
+        out_ll, out_l, out = model(images)
 
         gt = gt_images.to(device)
 
