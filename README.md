@@ -1,2 +1,2 @@
 # ArTEMIS
-Arbitrary-timestep Transformer Enabling Multi-frame Interpolation and Synthesis
+Arbitrary-timestep Transformer for Enhanced Multi-frame Interpolation and Synthesis
