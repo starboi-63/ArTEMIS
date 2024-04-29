@@ -76,11 +76,25 @@ def windows_to_input(windows, window_size, B, D, H, W):
 
 
 def get_window_size(x_size, window_size, shift_size=None):
+    """
+    Get the corrected window size and shift sizes for the input tensor, ensuring 
+    that the window size is not larger than the input size in any dimension.
+
+    Args:
+        x_size (tuple[int]): Input tensor size
+        window_size (tuple[int]): Window size (for localized multi-headed self attention)
+        shift_size (tuple[int]): Shift size (for SWIN-like shifting windows)
+    Returns:
+        corrected_window_size (tuple[int]): Corrected window size
+        corrected_shift_size (tuple[int]): Corrected shift size
+    """
+    # initialize the corrected window size and shift size
     corrected_window_size = list(window_size)
 
     if shift_size is not None:
         corrected_shift_size = list(shift_size)
 
+    # Make sure the window size is not larger than the input size in any dimension
     for i in range(len(x_size)):
         if x_size[i] <= window_size[i]:
             corrected_window_size[i] = x_size[i]
