@@ -66,28 +66,28 @@ class ArTEMIS(nn.Module):
         for i in range(self.num_outputs):
             # __________________________________________________________________
             # TODO: Modify VFIT architecture below to incorporate time
-            x_0, x_1, x_2, x_3, x_4 = self.encoder(images)
+            x0, x1, x2, x3, x4 = self.encoder(images)
 
-            dx_3 = self.lrelu(self.decoder[0](x_4, x_3.size()))
-            dx_3 = joinTensors(dx_3, x_3, type=self.joinType)
+            dx3 = self.lrelu(self.decoder[0](x4, x3.size()))
+            dx3 = joinTensors(dx3, x3, type=self.joinType)
 
-            dx_2 = self.lrelu(self.decoder[1](dx_3, x_2.size()))
-            dx_2 = joinTensors(dx_2, x_2, type=self.joinType)
+            dx2 = self.lrelu(self.decoder[1](dx3, x2.size()))
+            dx2 = joinTensors(dx2, x2, type=self.joinType)
 
-            dx_1 = self.lrelu(self.decoder[2](dx_2, x_1.size()))
-            dx_1 = joinTensors(dx_1, x_1, type=self.joinType)
+            dx1 = self.lrelu(self.decoder[2](dx2, x1.size()))
+            dx1 = joinTensors(dx1, x1, type=self.joinType)
 
-            fea3 = self.smooth_ll(dx_3)
-            fea2 = self.smooth_l(dx_2)
-            fea1 = self.smooth(dx_1)
+            features3 = self.smooth_ll(dx3)
+            features2 = self.smooth_l(dx2)
+            features1 = self.smooth(dx1)
 
-            curr_out_ll = self.predict_ll(fea3, frames, x_2.size()[-2:])
+            curr_out_ll = self.predict_ll(features3, frames, x2.size()[-2:])
 
-            curr_out_l = self.predict_l(fea2, frames, x_1.size()[-2:])
+            curr_out_l = self.predict_l(features2, frames, x1.size()[-2:])
             curr_out_l = F.interpolate(out_ll, size=out_l.size()
                                        [-2:], mode='bilinear') + out_l
 
-            curr_out = self.predict(fea1, frames, x_0.size()[-2:])
+            curr_out = self.predict(features1, frames, x0.size()[-2:])
             curr_out = F.interpolate(out_l, size=out.size()
                                      [-2:], mode='bilinear') + out
             out_ll.append(curr_out_ll)
