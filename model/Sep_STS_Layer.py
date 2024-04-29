@@ -41,11 +41,11 @@ def input_to_windows(x, window_size):
     B, D, H, W, C = x.shape
     # Divide the three spatial dimensions (D, H, W) into windows
     x = x.view(B, D // window_size[0], window_size[0], H // window_size[1], window_size[1], W // window_size[2], window_size[2], C)
-    # Rearrange the data to be of shape (B, num_windows_along_D, num_windows_along_H, num_windows_along_W, window_size[0], window_size[1], window_size[2], C)
+    # Rearrange the data to be of shape (B, #windows_D, #windows_H, #windows_W, window_size_D, window_size_H, window_size_W, C)
     windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7)
     # Align memory contiguously
     windows = windows.contiguous()
-    # Merge the spatial dimensions into one dimension, so that the final result is (B*num_windows, window_size*window_size, C)
+    # Merge the spatial dimensions into one dimension, so that the final result is (B*#windows, window_size*window_size, C)
     windows = windows.view(-1, reduce(mul, window_size), C)
 
     return windows
@@ -63,13 +63,13 @@ def windows_to_input(windows, window_size, B, D, H, W):
     Returns:
         x: (B, D, H, W, C)
     """
-    # Extract flattened windowed dimensions into original shapes
+    # Reshape flattened windowed dimensions into (B, #windows_D, #windows_H, #windows_W, window_size_D, window_size_H, window_size_W, C)
     x = windows.view(B, D // window_size[0], H // window_size[1], W // window_size[2], window_size[0], window_size[1], window_size[2], -1)
-    # Rearrange the data to be of shape (B, num_windows_along_D, window_size[0], num_windows_along_H, window_size[1], num_windows_along_W, window_size[2], C)
+    # Rearrange the data to be of shape (B, #windows_D, window_size_D, #windows_H, window_size_H, #windows_W, window_size_W, C)
     x = x.permute(0, 1, 4, 2, 5, 3, 6, 7)
-    # Align memory contiguously
+    # Align memory contiguously 
     x = x.contiguous()
-    # Merge the spatial dimensions into one dimension, so that the final result is (B, D, H, W, C)
+    # Merge #windows_{} and window_size_{} axes into one dimension, so that the final result is (B, D, H, W, C)
     x = x.view(B, D, H, W, -1)
 
     return x
@@ -123,37 +123,64 @@ class WindowAttention3D(nn.Module):
 
         super().__init__()
         self.dim = dim
-        self.window_size = window_size  # Wd, Wh, Ww
+        self.window_size = window_size  # (Wd, Wh, Ww)
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim ** -0.5
 
-        # define a parameter table of relative position bias
+        # Define a parameter table of relative position bias which we can index into
         self.relative_position_bias_table = nn.Parameter(
             torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1) * (2 * window_size[2] - 1),
-                        num_heads))  # 2*Wd-1 * 2*Wh-1 * 2*Ww-1, nH
+                        num_heads))  # (2*Wd-1 * 2*Wh-1 * 2*Ww-1, nH)
 
-        # get pair-wise relative position index for each token inside the window
+        # Get pair-wise relative position index for each token inside the window
+
+        # Three lists of coordinates for each dimension individually
         coords_d = torch.arange(self.window_size[0])
         coords_h = torch.arange(self.window_size[1])
         coords_w = torch.arange(self.window_size[2])
-        coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w))  # 3, Wd, Wh, Ww
-        coords_flatten = torch.flatten(coords, 1)  # 3, Wd*Wh*Ww
-        relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 3, Wd*Wh*Ww, Wd*Wh*Ww
-        relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wd*Wh*Ww, Wd*Wh*Ww, 3
+        # Meshgrid returns three tensors of shape (Wd, Wh, Ww), so we stack them together into a single tensor
+        coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w))  # (3, Wd, Wh, Ww)
+        # Flatten the coordinates into a 1D tensor for each dimension
+        coords_flattened = torch.flatten(coords, 1)  # (3, Wd*Wh*Ww)
+        # Encode relative position of each token w.r.t. every other token within the window by subtracting two broadcasted tensors:
+        # (3, Wd*Wh*Ww, 1) - (3, 1, Wd*Wh*Ww) --{broadcasting}--> (3, Wd*Wh*Ww, Wd*Wh*Ww) - (3, Wd*Wh*Ww, Wd*Wh*Ww)
+        relative_coords = coords_flattened[:, :, np.newaxis] - coords_flattened[:, np.newaxis, :]  # (3, Wd*Wh*Ww, Wd*Wh*Ww) 
+        # Permute the tensor and lay memory out contiguously
+        relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # (Wd*Wh*Ww, Wd*Wh*Ww, 3)
+        # Add the window size along each dim to the relative coordinates on the same dim to ensure that they are non-negative
+        # [-(Wd-1), ..., +(Wd-1)] --{shift}--> [0, ..., 2*Wd-2]
         relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0
-        relative_coords[:, :, 1] += self.window_size[1] - 1
-        relative_coords[:, :, 2] += self.window_size[2] - 1
+        relative_coords[:, :, 1] += self.window_size[1] - 1  # shift to start from 0
+        relative_coords[:, :, 2] += self.window_size[2] - 1  # shift to start from 0
 
+        # Convert the relative coordinates to unique indices
+
+        # Changes in depth should shift indices by a full plane (i.e. the product of the height and width of the window)
         relative_coords[:, :, 0] *= (2 * self.window_size[1] - 1) * (2 * self.window_size[2] - 1)
+        # Changes in height should shift indices by a row (i.e. the width of the window)
         relative_coords[:, :, 1] *= (2 * self.window_size[2] - 1)
-        relative_position_index = relative_coords.sum(-1)  # Wd*Wh*Ww, Wd*Wh*Ww
-        self.register_buffer("relative_position_index", relative_position_index)
+        # Changes in width should shift indices by a column (i.e. 1)
+        # DO NOTHING: relative_coords[:, :, 2] *= 1
 
+        # Sum the coordinates of the 3 different dimensions together to get the final indices
+        relative_position_indices = relative_coords.sum(-1)  # (Wd*Wh*Ww, Wd*Wh*Ww)
+
+        # Register the relative position index as a buffer so that it is saved in the model's state_dict
+        # This prevents relative position indices from treating as trainable model parameters
+        self.register_buffer("relative_position_index", relative_position_indices)
+
+        # Layer to create query, key, and value matrices given an input feature vector
+        # Using a single linear layer like this is an optimization to save memory
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+
+        # Layer to project the output of the multi-head self attention back to the original dimension
         self.proj = nn.Linear(dim, dim)
 
+        # Initialize the relative position bias table with a truncated normal distribution
         trunc_normal_(self.relative_position_bias_table, std=.02)
+
+        # Softmax function to normalize the attention scores
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, mask=None):
