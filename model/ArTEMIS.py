@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from model.SEP_STS_Encoder import ResBlock
 
 
@@ -12,7 +13,10 @@ class ArTEMIS(nn.Module):
         spatial_window_sizes = [(1, 8, 8), (1, 8, 8), (1, 8, 8), (1, 8, 8)]
         num_heads = [2, 4, 8, 16]  # For Multi-Head Attention
         self.joinType = joinType
-        self.n_inputs = num_inputs
+        self.num_inputs = num_inputs
+        self.num_outputs = num_outputs
+        # delta_t: the perceived timestep between each frame
+        # We treat all input and output frames as spaced out evenly
         self.delta_t = 1 / (num_outputs + 1)
 
         growth = 2 if joinType == "concat" else 1
@@ -40,9 +44,14 @@ class ArTEMIS(nn.Module):
         self.smooth2 = SmoothNet(num_features[2]*growth, num_features_out)
         self.smooth3 = SmoothNet(num_features[3]*growth, num_features_out)
 
-        self.predict1 =  # define SynBlock
+        self.predict1 =  # TODO: define SynBlock
 
-    def forward(self, frames, t=0.5):
+    def forward(self, frames):
+        '''
+        Performs the forward pass for each output frame needed, a number of times equal to num_outputs.
+        Returns the interpolated frames as a list of outputs: [interp1, interp2, interp3, ...]
+        frames: input frames
+        '''
         images = torch.stack(frames, dim=2)
         _, _, _, H, W = images.shape
 
@@ -50,6 +59,44 @@ class ArTEMIS(nn.Module):
         mean_ = images.mean(2, keepdim=True).mean(
             3, keepdim=True).mean(4, keepdim=True)
         images = images - mean_
+
+        out = []
+        out_l = []
+        out_ll = []
+        for i in range(self.num_outputs):
+            # __________________________________________________________________
+            # TODO: Modify VFIT architecture below to incorporate time
+            x_0, x_1, x_2, x_3, x_4 = self.encoder(images)
+
+            dx_3 = self.lrelu(self.decoder[0](x_4, x_3.size()))
+            dx_3 = joinTensors(dx_3, x_3, type=self.joinType)
+
+            dx_2 = self.lrelu(self.decoder[1](dx_3, x_2.size()))
+            dx_2 = joinTensors(dx_2, x_2, type=self.joinType)
+
+            dx_1 = self.lrelu(self.decoder[2](dx_2, x_1.size()))
+            dx_1 = joinTensors(dx_1, x_1, type=self.joinType)
+
+            fea3 = self.smooth_ll(dx_3)
+            fea2 = self.smooth_l(dx_2)
+            fea1 = self.smooth(dx_1)
+
+            curr_out_ll = self.predict_ll(fea3, frames, x_2.size()[-2:])
+
+            curr_out_l = self.predict_l(fea2, frames, x_1.size()[-2:])
+            curr_out_l = F.interpolate(out_ll, size=out_l.size()
+                                       [-2:], mode='bilinear') + out_l
+
+            curr_out = self.predict(fea1, frames, x_0.size()[-2:])
+            curr_out = F.interpolate(out_l, size=out.size()
+                                     [-2:], mode='bilinear') + out
+            out_ll.append(curr_out_ll)
+            out_l.append(curr_out_l)
+            out.append(curr_out)
+        if self.training:
+            return out_ll, out_l, out
+        else:
+            return out
 
 
 class upSplit(nn.Module):
@@ -76,3 +123,13 @@ class Conv3d(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
+
+def joinTensors(X1, X2, type="concat"):
+
+    if type == "concat":
+        return torch.cat([X1, X2], dim=1)
+    elif type == "add":
+        return X1 + X2
+    else:
+        return X1
