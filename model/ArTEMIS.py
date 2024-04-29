@@ -63,6 +63,7 @@ class ArTEMIS(nn.Module):
         out = []
         out_l = []
         out_ll = []
+
         for i in range(self.num_outputs):
             # __________________________________________________________________
             # TODO: Modify VFIT architecture below to incorporate time
@@ -90,9 +91,11 @@ class ArTEMIS(nn.Module):
             curr_out = self.predict(features1, frames, x0.size()[-2:])
             curr_out = F.interpolate(out_l, size=out.size()
                                      [-2:], mode='bilinear') + out
+            
             out_ll.append(curr_out_ll)
             out_l.append(curr_out_l)
             out.append(curr_out)
+
         if self.training:
             return out_ll, out_l, out
         else:
