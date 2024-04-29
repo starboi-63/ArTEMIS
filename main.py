@@ -50,7 +50,7 @@ else:
 print("Building model: %s" % args.model)
 # number of outputs = 1 implicitly
 # Important parameters: num_inputs=4, num_outputs=3
-# Based on the
+# Model can calculate delta_t, the perceived timestep between each frame, including inputs and outputs
 model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType,
                 kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
 model = torch.nn.DataParallel(model).to(device)
@@ -60,7 +60,7 @@ print('the number of network parameters: {}'.format(total_params))
 ##### Define Loss & Optimizer #####
 criterion = Loss(args)
 
-# ToDo: Different learning rate schemes for different parameters
+# TODO: Different learning rate schemes for different parameters
 optimizer = Adamax(model.parameters(), lr=args.lr,
                    betas=(args.beta1, args.beta2))
 
@@ -79,11 +79,10 @@ def train(args, epoch):
         # Forward
         optimizer.zero_grad()
 
-        # out should be a list of the 3 interpolated frames 0.25, 0.5, 0.75
-        out_ll, out_l, out1 = model(images, t=delta_t)
-        out_ll, out_l, out2 = model(images, t=2*delta_t)
-        out_ll, out_l, out3 = model(images, t=3*delta_t)
-        out = [out1, out2, out3]
+        # out should be a list of the 3 interpolated frames
+        out_ll, out_l, out = model(images)
+        # Temporally Flip inputs: going 'forwards' or 'backwards' in a video
+        reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
 
         gt = gt_images.to(device)
 
@@ -93,9 +92,9 @@ def train(args, epoch):
 
         # ********************************************************************************
         # need to also pass in temporally flipped interpolated frames to loss calculations
-        loss0, _ = criterion(out[0], gt[0])
-        loss1, _ = criterion(out[1], gt[1])
-        loss2, _ = criterion(out[2], gt[2])
+        loss0, _ = criterion(out[0], reverse_out[0], gt[0])
+        loss1, _ = criterion(out[1], reverse_out[1], gt[1])
+        loss2, _ = criterion(out[2], reverse_out[2], gt[2])
         overall_loss = (loss0 + loss1 + loss2) / 3
 
         losses['total'].update(overall_loss.item())
@@ -137,8 +136,8 @@ def test(args, epoch):
             gt = gt_images.to(device)
 
             # images is a list of neighboring frames
-            # TODO: Add hyperparameter bullshit: delta_t
-            out = [model(images), model(images), model(images)]
+            # TODO:
+            out = model(images)
 
             # Save loss values
             # loss, loss_specific = criterion(out, gt)
@@ -149,7 +148,13 @@ def test(args, epoch):
             loss1, loss_specific1 = criterion(out[1], gt[1])
             loss2, loss_specific2 = criterion(out[2], gt[2])
             overall_loss = (loss0 + loss1 + loss2) / 3
+            loss_specific = {
+                'type': loss_specific0['type'],
+                'weight': loss_specific0['weight'],
+                'function': loss_specific0['function']
+            }
 
+            # Save loss values
             for k, v in losses.items():
                 if k != 'total':
                     # TODO: idk what loss_specific does
