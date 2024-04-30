@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from model.SEP_STS_Encoder import ResBlock
 import ChronoSynth
 
@@ -97,12 +96,12 @@ class ArTEMIS(nn.Module):
 
             curr_out_l = self.predict2(
                 mid_scale_features, frames, x1.size()[-2:], time_tensor)
-            curr_out_l = F.interpolate(curr_out_ll, size=curr_out_l.size()
+            curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()
                                        [-2:], mode='bilinear') + curr_out_l
 
             curr_out = self.predict3(
                 high_scale_features, frames, x0.size()[-2:], time_tensor)
-            curr_out = F.interpolate(curr_out_l, size=curr_out.size()
+            curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()
                                      [-2:], mode='bilinear') + curr_out
 
             out_ll.append(curr_out_ll)

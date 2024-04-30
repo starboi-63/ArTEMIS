@@ -3,6 +3,7 @@ from torch.optim import Adamax
 import time
 
 import torch
+import torch.nn as nn
 from tqdm import tqdm
 
 import config
@@ -53,7 +54,7 @@ print("Building model: %s" % args.model)
 # Model can calculate delta_t, the perceived timestep between each frame, including inputs and outputs
 model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType,
                 kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
-model = torch.nn.DataParallel(model).to(device)
+model = nn.DataParallel(model).to(device)
 total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print('total number of network parameters: {}'.format(total_params))
 

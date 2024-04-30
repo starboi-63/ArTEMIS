@@ -18,10 +18,6 @@
 
 from pytorch_msssim import ssim_matlab as calc_ssim
 import math
-import os
-import torch
-import shutil
-import torch.nn.functional as F
 
 
 def init_meters(loss_str):
@@ -45,10 +41,12 @@ def eval_metrics(output, gt, psnrs, ssims):
     for b in range(gt[0].size(0)):
         psnr = 0.0
         ssim = 0.0
+
         for i in range(len(gt)):
             psnr += calc_psnr(output[i][b], gt[i][b])
             ssim += calc_ssim(output[b].unsqueeze(0).clamp(
                 0, 1), gt[b].unsqueeze(0).clamp(0, 1), val_range=1.)
+
         psnrs.update(psnr / 3)
         ssims.update(ssim / 3)
 
