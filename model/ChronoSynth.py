@@ -73,12 +73,18 @@ class ChronoSynth(nn.Module):
             num_features * num_inputs, num_features, kernel_size=1, stride=1, batchnorm=False, bias=True)
         self.lrelu = nn.LeakyReLU(0.2)
 
-    def forward(self, features, frames, output_size):
+    def forward(self, features, frames, output_size, time_tensor):
         H, W = output_size
 
-        occlusion = torch.cat(torch.unbind(features, 1), 1)
+        F0, F1, F2, F3 = torch.unbind(features, 1)
+        F0 = torch.cat([F0, time_tensor - 1])
+        F1 = torch.cat([F1, time_tensor])
+        F2 = torch.cat([F2, 1 - time_tensor])
+        F3 = torch.cat([F3, 2 - time_tensor])
+
+        occlusion = torch.cat([F0, F1, F2, F3], 1)
         occlusion = self.lrelu(self.feature_fuse(occlusion))
-        Occlusion = self.moduleOcclusion(occlusion, (H, W))
+        occlusion = self.moduleOcclusion(occlusion, (H, W))
 
         B, C, T, cur_H, cur_W = features.shape
         features = features.transpose(1, 2).reshape(B*T, C, cur_H, cur_W)
