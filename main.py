@@ -136,7 +136,6 @@ def test(args, epoch):
             gt = gt_images.to(device)
 
             # images is a list of neighboring frames
-            # TODO:
             out = model(images)
 
             # Save loss values
@@ -148,6 +147,7 @@ def test(args, epoch):
             loss1, loss_specific1 = criterion(out[1], gt[1])
             loss2, loss_specific2 = criterion(out[2], gt[2])
             overall_loss = (loss0 + loss1 + loss2) / 3
+            # TODO: not sure if loss_specific is done right...
             loss_specific = {
                 'type': loss_specific0['type'],
                 'weight': loss_specific0['weight'],
