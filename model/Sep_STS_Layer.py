@@ -27,7 +27,7 @@ class Mlp(nn.Module):
         return x
 
 
-def input_to_windows(x, window_size):
+def window_partition(x, window_size):
     """
     Partition the input tensor into windows for localized multi-headed self attention.
     
@@ -35,37 +35,37 @@ def input_to_windows(x, window_size):
         x: (B, D, H, W, C)
         window_size (tuple[int]): window size
     Returns:
-        windows: (B*num_windows, window_size*window_size, C)
+        windows: (B*num_windows, Wd*Wh*Ww, C)
     """
     # Batch, Depth, Height, Width, Channel (channel remains untouched throughout the process)
     B, D, H, W, C = x.shape
     # Divide the three spatial dimensions (D, H, W) into windows
     x = x.view(B, D // window_size[0], window_size[0], H // window_size[1], window_size[1], W // window_size[2], window_size[2], C)
-    # Rearrange the data to be of shape (B, #windows_D, #windows_H, #windows_W, window_size_D, window_size_H, window_size_W, C)
+    # Rearrange the data to be of shape (B, #windows_D, #windows_H, #windows_W, Wd, Wh, Ww, C)
     windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7)
     # Align memory contiguously
     windows = windows.contiguous()
-    # Merge the spatial dimensions into one dimension, so that the final result is (B*#windows, window_size*window_size, C)
+    # Merge the spatial dimensions into one dimension, so that the final result is (B*#windows, Wd*Wh*Ww, C)
     windows = windows.view(-1, reduce(mul, window_size), C)
 
     return windows
 
 
-def windows_to_input(windows, window_size, B, D, H, W):
+def undo_window_partition(windows, window_size, B, D, H, W):
     """
     Rearrange the windowed input back to an original input tensor shape.
    
     Args:
-        windows: (B*num_windows, window_size*window_size, C)
+        windows: (B*num_windows, Wd*Wh*Ww, C)
         window_size (tuple[int]): Window size
         H (int): Height of image
         W (int): Width of image
     Returns:
         x: (B, D, H, W, C)
     """
-    # Reshape flattened windowed dimensions into (B, #windows_D, #windows_H, #windows_W, window_size_D, window_size_H, window_size_W, C)
+    # Reshape flattened windowed dimensions into (B, #windows_D, #windows_H, #windows_W, Wd, Wh, Ww, C)
     x = windows.view(B, D // window_size[0], H // window_size[1], W // window_size[2], window_size[0], window_size[1], window_size[2], -1)
-    # Rearrange the data to be of shape (B, #windows_D, window_size_D, #windows_H, window_size_H, #windows_W, window_size_W, C)
+    # Rearrange the data to be of shape (B, #windows_D, Wd, #windows_H, Wh, #windows_W, Ww, C)
     x = x.permute(0, 1, 4, 2, 5, 3, 6, 7)
     # Align memory contiguously 
     x = x.contiguous()
@@ -124,11 +124,11 @@ class WindowAttention3D(nn.Module):
         super().__init__()
         self.dim = dim
         self.window_size = window_size  # (Wd, Wh, Ww)
-        self.num_heads = num_heads
-        head_dim = dim // num_heads
+        self.num_heads = num_heads  # nH
+        head_dim = dim // num_heads  # C//nH
         self.scale = qk_scale or head_dim ** -0.5
 
-        # Define a parameter table of relative position bias which we can index into
+        # Define a parameter table of biases which we can index into
         self.relative_position_bias_table = nn.Parameter(
             torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1) * (2 * window_size[2] - 1),
                         num_heads))  # (2*Wd-1 * 2*Wh-1 * 2*Ww-1, nH)
@@ -168,7 +168,7 @@ class WindowAttention3D(nn.Module):
 
         # Register the relative position index as a buffer so that it is saved in the model's state_dict
         # This prevents relative position indices from treating as trainable model parameters
-        self.register_buffer("relative_position_index", relative_position_indices)
+        self.register_buffer("relative_position_indices", relative_position_indices)
 
         # Layer to create query, key, and value matrices given an input feature vector
         # Using a single linear layer like this is an optimization to save memory
@@ -186,21 +186,30 @@ class WindowAttention3D(nn.Module):
     def forward(self, x, mask=None):
         """ Forward function.
         Args:
-            x: input features with shape of (num_windows*B, N, C)
+            x: input features with shape of (num_windows*B, N, C), where N is the number of elements in each window.
             mask: (0/-inf) mask with shape of (num_windows, N, N) or None
         """
+        # Total number of windows, number of elements in each window, and number of channels
         B_, N, C = x.shape
-        qkv = self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv[0], qkv[1], qkv[2]  # B_, nH, N, C
+        # Generate the query, key, and value matrices
+        qkv = self.qkv(x) # (B_, N, 3 * C)
+        # Separate the query, key, and value matrices from each other and distribute them across the attention heads
+        qkv = qkv.reshape(B_, N, 3, self.num_heads, C // self.num_heads) # (B_, N, 3, nH, C//nH)
+        # Permute the tensor to make the query, key, and value matrices individually contiguous in memory
+        qkv = qkv.permute(2, 0, 3, 1, 4) # (3, B_, nH, N, C//nH)
+        # Extract the query, key, and value matrices
+        queries, keys, values = qkv[0], qkv[1], qkv[2]  # each is (B_, nH, N, C//nH)
+        # Scale the query matrix
+        queries = queries * self.scale
 
-        q = q * self.scale
-        attn = q @ k.transpose(-2, -1)
+        # Calculate the attention scores
+        attn = queries @ keys.transpose(-2, -1)
 
-        relative_position_bias = self.relative_position_bias_table[
-            self.relative_position_index[:N, :N].reshape(-1)].reshape(
-            N, N, -1)  # Wd*Wh*Ww,Wd*Wh*Ww,nH
-        relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wd*Wh*Ww, Wd*Wh*Ww
-        attn = attn + relative_position_bias.unsqueeze(0)  # B_, nH, N, N
+        # Look up the relative position bias table for each pair of tokens
+        indices = self.relative_position_indices[:N, :N].reshape(-1)
+        relative_position_bias = self.relative_position_bias_table[indices].reshape(N, N, -1)  # (Wd*Wh*Ww, Wd*Wh*Ww, nH)
+        relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # (nH, Wd*Wh*Ww, Wd*Wh*Ww)
+        attn = attn + relative_position_bias.unsqueeze(0)  # (B_, nH, N, N)
 
         if mask is not None:
             nW = mask.shape[0]
@@ -279,7 +288,7 @@ class SepSTSBlock(nn.Module):
         attn_windows = self.depth_attn(x_windows, mask=attn_mask)  # B*nW, Wd*Wh*Ww, C
         # merge windows
         attn_windows = attn_windows.view(-1, *(window_size + (C,)))
-        shifted_x = window_reverse(attn_windows, window_size, B, Dp, Hp, Wp)  # B D' H' W' C
+        shifted_x = undo_window_partition(attn_windows, window_size, B, Dp, Hp, Wp)  # B D' H' W' C
         # reverse cyclic shift
         if any(i > 0 for i in shift_size):
             x = torch.roll(shifted_x, shifts=(shift_size[0], shift_size[1], shift_size[2]), dims=(1, 2, 3))
@@ -293,7 +302,7 @@ class SepSTSBlock(nn.Module):
         x_windows = window_partition(x, window_size)
         attn_windows = self.point_attn(x_windows, mask=None)
         attn_windows = attn_windows.view(-1, *(window_size + (C,)))
-        x = window_reverse(attn_windows, window_size, B, D, H, W)
+        x = window_partition(attn_windows, window_size, B, D, H, W)
 
         return x
 
