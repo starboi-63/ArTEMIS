@@ -50,7 +50,7 @@ class TimeEmbedding(nn.Module):
 
 
 class ArTEMIS(nn.Module):
-    def __init__(self, num_inputs=4, num_outputs=1, joinType="concat", kernel_size=5, dilation=1, time_embedding_size=64):
+    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1, time_embedding_size=64):
         super().__init__()
 
         num_features = [192, 128, 64, 32]
@@ -59,10 +59,10 @@ class ArTEMIS(nn.Module):
         num_heads = [2, 4, 8, 16]  # For Multi-Head Attention
         self.joinType = joinType
         self.num_inputs = num_inputs
-        self.num_outputs = num_outputs
+        # self.num_outputs = num_outputs
         # delta_t: the perceived timestep between each frame
         # We treat all input and output frames as spaced out evenly
-        self.delta_t = 1 / (num_outputs + 1)
+        # self.delta_t = 1 / (num_outputs + 1)
 
         growth = 2 if joinType == "concat" else 1
         self.lrelu = nn.LeakyReLU(0.2, inplace=True)
@@ -97,7 +97,7 @@ class ArTEMIS(nn.Module):
 
         self.predict1 = ??  # TODO: define SynBlock
 
-    def forward(self, frames):
+    def forward(self, frames, num_outputs=1):
         '''
         Performs the forward pass for each output frame needed, a number of times equal to num_outputs.
         Returns the interpolated frames as a list of outputs: [interp1, interp2, interp3, ...]
@@ -135,8 +135,9 @@ class ArTEMIS(nn.Module):
         features1 = self.smooth3(dx1)
 
         # Generate multiple output frames
-        for i in range(1, self.num_outputs + 1):
-            time = i * self.delta_t
+        for i in range(1, num_outputs + 1):
+            delta_t = 1 / (num_outputs + 1)
+            time = i * delta_t
             features3_with_time = self.time_embedding(time, features3)
 
             curr_out_ll = self.predict_ll(
