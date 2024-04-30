@@ -6,8 +6,6 @@ import random
 
 
 class VimeoSepTuplet(Dataset):
-    # why frames 1, 3, 5, 7 ...
-    # mode?
     def __init__(self, data_root, is_training):
         # original header was   input_frames="1357", mode='mini'):
         '''
