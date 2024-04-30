@@ -1,13 +1,11 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
-from timm.models.layers import DropPath, trunc_normal_
+from timm.models.layers import trunc_normal_
 
 from functools import reduce, lru_cache
 from operator import mul
 from einops import rearrange
-from einops.layers.torch import Rearrange
 
 class Mlp(nn.Module):
     """ Multilayer perceptron."""
@@ -175,7 +173,7 @@ class WindowAttention3D(nn.Module):
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
 
         # Layer to project the output of the multi-head self attention back to the original dimension
-        self.proj = nn.Linear(dim, dim)
+        self.project = nn.Linear(dim, dim)
 
         # Initialize the relative position bias table with a truncated normal distribution
         trunc_normal_(self.relative_position_bias_table, std=.02)
@@ -219,8 +217,8 @@ class WindowAttention3D(nn.Module):
         else:
             attn = self.softmax(attn)
 
-        x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
-        x = self.proj(x)
+        x = (attn @ values).transpose(1, 2).reshape(B_, N, C)
+        x = self.project(x)
         return x
 
 class SepSTSBlock(nn.Module):

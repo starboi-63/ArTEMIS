@@ -1,11 +1,10 @@
 # Sourced from https://github.com/myungsub/CAIN/blob/master/loss.py, who sourced from https://github.com/thstkdgus35/EDSR-PyTorch/tree/master/src/loss
 # Added Huber loss in addition.
 import torch
-import torch.nn.functional as F
-import torchvision.models as models
+import torch.nn as nn
 
 
-class Charbonnier(torch.nn.Module):
+class Charbonnier(nn.Module):
     def __init__(self, epsilon=0.001):
         # VFIT uses e=0.001
         # EDSC uses e=0.000001
@@ -25,7 +24,7 @@ class Charbonnier(torch.nn.Module):
 # based off of this implementation of Gradient Difference Loss https://github.com/mmany/pytorch-GDL/blob/main/custom_loss_functions.py
 
 
-class GDL(torch.nn.Module):
+class GDL(nn.Module):
     def __init__(self):  # can add alpha term to be faithful to originally proposed paper or go without (consistent with edsc)
         super(GDL, self).__init__()
 
@@ -49,17 +48,17 @@ class GDL(torch.nn.Module):
 # class wrapper for loss functions
 
 
-class Loss(torch.nn.modules.loss._Loss):
+class Loss(nn.modules.loss._Loss):
     def __init__(self, args):
         super(Loss, self).__init__()
 
         self.loss = []
-        self.loss_module = torch.nn.ModuleList()
+        self.loss_module = nn.ModuleList()
         for loss in args.loss.split('+'):
             weight, loss_type = loss.split('*')
             match loss_type:
                 case'L1':
-                    loss_function = torch.nn.L1Loss()
+                    loss_function = nn.L1Loss()
                 case 'Charb':
                     loss_function = Charbonnier()
                 case 'GDL':
@@ -80,7 +79,7 @@ class Loss(torch.nn.modules.loss._Loss):
         device = torch.device('cuda' if args.cude else 'cpu')
         self.loss_module.to(device)
         if args.cuda:
-            self.loss_module = torch.nn.DataParallel(self.loss_module)
+            self.loss_module = nn.DataParallel(self.loss_module)
 
     # interp :: interpolated frame
     # interp_flipped :: interpolated frame

@@ -1,56 +1,57 @@
 import torch
+import torch.nn as nn
 from ArTEMIS import MySequential, Conv_2d
 
 
-class ChronoSynth(torch.nn.Module):
+class ChronoSynth(nn.Module):
     def __init__(self, num_inputs, num_features, kernel_size, dilation, apply_softmax=True):
         super(ChronoSynth, self).__init__()
 
         # Subnetwork to learn vertical and horizontal offsets during convolution
         def Subnet_offset(kernel_size):
             return MySequential(
-                torch.nn.Conv2d(
+                nn.Conv2d(
                     in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
-                torch.nn.LeakyReLU(negative_slope=0.2, inplace=False),
-                torch.nn.Conv2d(
+                nn.LeakyReLU(negative_slope=0.2, inplace=False),
+                nn.Conv2d(
                     in_channels=num_features, out_channels=kernel_size, kernel_size=3, stride=1, padding=1),
-                torch.nn.LeakyReLU(negative_slope=0.2, inplace=False),
-                torch.nn.ConvTranspose2d(
+                nn.LeakyReLU(negative_slope=0.2, inplace=False),
+                nn.ConvTranspose2d(
                     kernel_size, kernel_size, kernel_size=3, stride=2, padding=1),
-                torch.nn.Conv2d(
+                nn.Conv2d(
                     in_channels=kernel_size, out_channels=kernel_size, kernel_size=3, stride=1, padding=1)
             )
 
         # Subnetwork to learn weights for each pixel in the kernel
         def Subnet_weight(kernel_size):
             return MySequential(
-                torch.nn.Conv2d(
+                nn.Conv2d(
                     in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
-                torch.nn.LeakyReLU(negative_slope=0.2, inplace=False),
-                torch.nn.Conv2d(
+                nn.LeakyReLU(negative_slope=0.2, inplace=False),
+                nn.Conv2d(
                     in_channels=num_features, out_channels=kernel_size, kernel_size=3, stride=1, padding=1),
-                torch.nn.LeakyReLU(negative_slope=0.2, inplace=False),
-                torch.nn.ConvTranspose2d(
+                nn.LeakyReLU(negative_slope=0.2, inplace=False),
+                nn.ConvTranspose2d(
                     kernel_size, kernel_size, kernel_size=3, stride=2, padding=1),
-                torch.nn.Conv2d(
+                nn.Conv2d(
                     in_channels=kernel_size, out_channels=kernel_size, kernel_size=3, stride=1, padding=1),
-                torch.nn.Softmax(1) if apply_softmax else torch.nn.Identity()
+                nn.Softmax(1) if apply_softmax else nn.Identity()
             )
 
         # Subnetwork to learn occlusion masks
         def Subnet_occlusion():
             return MySequential(
-                torch.nn.Conv2d(
+                nn.Conv2d(
                     in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
-                torch.nn.LeakyReLU(negative_slope=0.2, inplace=False),
-                torch.nn.Conv2d(
+                nn.LeakyReLU(negative_slope=0.2, inplace=False),
+                nn.Conv2d(
                     in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
-                torch.nn.LeakyReLU(negative_slope=0.2, inplace=False),
-                torch.nn.ConvTranspose2d(
+                nn.LeakyReLU(negative_slope=0.2, inplace=False),
+                nn.ConvTranspose2d(
                     num_features, num_features, kernel_size=3, stride=2, padding=1),
-                torch.nn.Conv2d(
+                nn.Conv2d(
                     in_channels=num_features, out_channels=num_inputs, kernel_size=3, stride=1, padding=1),
-                torch.nn.Softmax(dim=1)
+                nn.Softmax(dim=1)
             )
 
         self.num_inputs = num_inputs
@@ -58,7 +59,7 @@ class ChronoSynth(torch.nn.Module):
         self.kernel_pad = int(((kernel_size - 1) * dilation) / 2.0)
         self.dilation = dilation
 
-        self.modulePad = torch.nn.ReplicationPad2d(
+        self.modulePad = nn.ReplicationPad2d(
             [self.kernel_pad, self.kernel_pad, self.kernel_pad, self.kernel_pad])
 
         import cupy_module.synth as synth
@@ -71,7 +72,7 @@ class ChronoSynth(torch.nn.Module):
 
         self.feature_fuse = Conv_2d(
             num_features * num_inputs, num_features, kernel_size=1, stride=1, batchnorm=False, bias=True)
-        self.lrelu = torch.nn.LeakyReLU(0.2)
+        self.lrelu = nn.LeakyReLU(0.2)
 
     def forward(self, features, frames, output_size, time_tensor):
         H, W = output_size
@@ -98,7 +99,7 @@ class ChronoSynth(torch.nn.Module):
             alpha = alphas[:, i].contiguous()
             beta = betas[:, i].contiguous()
             occ = occlusion[:, i:i+1] 
-            frame = torch.nn.functional.interpolate(
+            frame = nn.functional.interpolate(
                 frames[i], size=weight.size()[-2:], mode='bilinear')
 
             warp.append(
