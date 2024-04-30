@@ -1,8 +1,8 @@
 import torch
-from ArTEMIS import Conv3d
+from ArTEMIS import MySequential, Conv_2d
 
 
-class ChronoSynth(nn.Module):
+class ChronoSynth(torch.nn.Module):
     def __init__(self, num_inputs, num_features, kernel_size, dilation, apply_softmax=True):
         super(ChronoSynth, self).__init__()
 
@@ -34,7 +34,7 @@ class ChronoSynth(nn.Module):
                     kernel_size, kernel_size, kernel_size=3, stride=2, padding=1),
                 torch.nn.Conv2d(
                     in_channels=kernel_size, out_channels=kernel_size, kernel_size=3, stride=1, padding=1),
-                nn.Softmax(1) if apply_softmax else nn.Identity()
+                torch.nn.Softmax(1) if apply_softmax else torch.nn.Identity()
             )
 
         # Subnetwork to learn occlusion masks
@@ -71,7 +71,7 @@ class ChronoSynth(nn.Module):
 
         self.feature_fuse = Conv_2d(
             num_features * num_inputs, num_features, kernel_size=1, stride=1, batchnorm=False, bias=True)
-        self.lrelu = nn.LeakyReLU(0.2)
+        self.lrelu = torch.nn.LeakyReLU(0.2)
 
     def forward(self, features, frames, output_size, time_tensor):
         H, W = output_size
@@ -82,9 +82,9 @@ class ChronoSynth(nn.Module):
         F2 = torch.cat([F2, 1 - time_tensor])
         F3 = torch.cat([F3, 2 - time_tensor])
 
-        occlusion = torch.cat([F0, F1, F2, F3], 1)
-        occlusion = self.lrelu(self.feature_fuse(occlusion))
-        occlusion = self.moduleOcclusion(occlusion, (H, W))
+        occ = torch.cat([F0, F1, F2, F3], 1)
+        occ = self.lrelu(self.feature_fuse(occ))
+        occlusion = self.moduleOcclusion(occ, (H, W)) 
 
         B, C, T, cur_H, cur_W = features.shape
         features = features.transpose(1, 2).reshape(B*T, C, cur_H, cur_W)
@@ -97,13 +97,13 @@ class ChronoSynth(nn.Module):
             weight = weights[:, i].contiguous()
             alpha = alphas[:, i].contiguous()
             beta = betas[:, i].contiguous()
-            occlusion = Occlusion[:, i:i+1]
-            frame = F.interpolate(
+            occ = occlusion[:, i:i+1] 
+            frame = torch.nn.functional.interpolate(
                 frames[i], size=weight.size()[-2:], mode='bilinear')
 
             warp.append(
-                occlusion *
-                self.moduleAdaCoF(self.modulePad(frame),
+                occ *
+                self.moduleSynth(self.modulePad(frame),
                                   weight, alpha, beta, self.dilation)
             )
 

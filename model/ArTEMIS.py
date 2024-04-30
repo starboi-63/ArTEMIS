@@ -34,7 +34,7 @@ class ArTEMIS(nn.Module):
 
         def SmoothNet(in_channels, out_channels):
             return nn.Sequential(
-                Conv3d(in_channels, out_channels, kernel_size=3,
+                Conv_3d(in_channels, out_channels, kernel_size=3,
                        stride=1, padding=1, batchnorm=False),
                 ResBlock(out_channels, kernel_size=3),
             )
@@ -124,9 +124,31 @@ class upSplit(nn.Module):
     def forward(self, x, output_size):
         x = self.upconv(x, output_size=output_size)
         return x
+    
+def joinTensors(X1, X2, type="concat"):
 
+    if type == "concat":
+        return torch.cat([X1, X2], dim=1)
+    elif type == "add":
+        return X1 + X2
+    else:
+        return X1
 
-class Conv3d(nn.Module):
+class Conv_2d(nn.Module):
+
+    def __init__(self, in_ch, out_ch, kernel_size, stride=1, padding=0, bias=False, batchnorm=False):
+        super().__init__()
+        self.conv = [nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)]
+
+        if batchnorm:
+            self.conv += [nn.BatchNorm2d(out_ch)]
+
+        self.conv = nn.Sequential(*self.conv)
+
+    def forward(self, x):
+        return self.conv(x)
+
+class Conv_3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, batchnorm=False):
         super().__init__()
         self.conv = [nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size,
@@ -139,13 +161,13 @@ class Conv3d(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+    
+class MySequential(nn.Sequential):
+    def forward(self, input, output_size):
+        for module in self:
+            if isinstance(module, nn.ConvTranspose2d):
+                input = module(input, output_size)
+            else:
+                input = module(input)
+        return input
 
-
-def joinTensors(X1, X2, type="concat"):
-
-    if type == "concat":
-        return torch.cat([X1, X2], dim=1)
-    elif type == "add":
-        return X1 + X2
-    else:
-        return X1
