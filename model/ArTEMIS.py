@@ -4,8 +4,53 @@ import torch.nn.functional as F
 from model.SEP_STS_Encoder import ResBlock
 
 
+class TimeEmbedding(nn.Module):
+    def __init__(self, embedding_size, height_dim, width_dim):
+        '''
+        Inspired by the positional encoding from Attention is All You Need, we calculate
+        Time encodings for each output vector and concatenate it to the channel dimension
+        of the latent representation.
+
+        embedding_size: hyperparameter for the size of the embedding along the channel dimension
+        height_dim: height dimension
+        width_dim: width dimension
+        '''
+        self.dense1 = nn.Linear(1, embedding_size)
+        self.dense2 = nn.Linear(embedding_size, embedding_size * height_dim)
+        self.dense3 = nn.Linear(
+            embedding_size * height_dim, embedding_size * height_dim * width_dim)
+        self.activation = nn.ReLU()
+
+    def forward(self, output_frame_time, latent):
+        '''
+        output_frame_time: value between 0-1 representing the time of the output frame
+        latent: the encoded representation of input frames
+        '''
+        assert output_frame_time > 0 and output_frame_time < 1
+        # Batch * Time * Channel * Height * Width
+        B, T, C, H, W = latent.shape
+
+        # Feed Forward: [1] --> [embedding_size * height_dim * width_dim]
+        output_frame_time = torch.tensor(output_frame_time)
+        time_embedding = self.dense1(output_frame_time)
+        time_embedding = self.activation(time_embedding)
+        time_embedding = self.dense2(time_embedding)
+        time_embedding = self.activation(time_embedding)
+        time_embedding = self.dense3(time_embedding)
+        time_embedding = self.activation(time_embedding)
+
+        # Reshape: [embedding_size * height_dim * width_dim] --> [embedding_size, height_dim, width_dim]
+        time_embedding = torch.reshape(
+            time_embedding, (-1, H, W))
+        # Copy values across Batch and Temporal dimensions: [embedding_size, height_dim, width_dim] --> [B, T, embedding_size, height_dim, width_dim]
+        time_embedding = time_embedding.unsqueeze(
+            0).unsqueeze(0).expand(B, T, -1, -1, -1)
+        # Concat embedding to the latent representation's channel dimension: [B, T, embedding_size, height_dim, width_dim] --> [B, T, C + embedding_size, H, W]
+        return torch.cat([latent, time_embedding], 2)
+
+
 class ArTEMIS(nn.Module):
-    def __init__(self, num_inputs=4, num_outputs=1, joinType="concat", kernel_size=5, dilation=1):
+    def __init__(self, num_inputs=4, num_outputs=1, joinType="concat", kernel_size=5, dilation=1, time_embedding_size=64):
         super().__init__()
 
         num_features = [192, 128, 64, 32]
@@ -44,7 +89,13 @@ class ArTEMIS(nn.Module):
         self.smooth2 = SmoothNet(num_features[2]*growth, num_features_out)
         self.smooth3 = SmoothNet(num_features[3]*growth, num_features_out)
 
-        self.predict1 =  # TODO: define SynBlock
+        # TODO: Figure out what HEIGHT_DIM and WIDTH_DIM are
+        HEIGHT_DIM = ??
+        WIDTH_DIM = ??
+        self.time_embedding = TimeEmbedding(
+            time_embedding_size, height_dim=HEIGHT_DIM, width_dim=WIDTH_DIM)
+
+        self.predict1 = ??  # TODO: define SynBlock
 
     def forward(self, frames):
         '''
@@ -53,7 +104,7 @@ class ArTEMIS(nn.Module):
         frames: input frames
         '''
         images = torch.stack(frames, dim=2)
-        _, _, _, H, W = images.shape
+        B, T, C, H, W = images.shape
 
         # Batch mean normalization works slightly better than global mean normalization (hence the repeated calls to .mean() below)
         mean_ = images.mean(2, keepdim=True).mean(
@@ -64,25 +115,32 @@ class ArTEMIS(nn.Module):
         out_l = []
         out_ll = []
 
-        for i in range(self.num_outputs):
-            # __________________________________________________________________
-            # TODO: Modify VFIT architecture below to incorporate time
-            x0, x1, x2, x3, x4 = self.encoder(images)
+        # __________________________________________________________________
+        # TODO: Modify VFIT architecture below to incorporate time
 
-            dx3 = self.lrelu(self.decoder[0](x4, x3.size()))
-            dx3 = joinTensors(dx3, x3, type=self.joinType)
+        # Only need to generate latent representation once
+        x0, x1, x2, x3, x4 = self.encoder(images)
 
-            dx2 = self.lrelu(self.decoder[1](dx3, x2.size()))
-            dx2 = joinTensors(dx2, x2, type=self.joinType)
+        dx3 = self.lrelu(self.decoder[0](x4, x3.size()))
+        dx3 = joinTensors(dx3, x3, type=self.joinType)
 
-            dx1 = self.lrelu(self.decoder[2](dx2, x1.size()))
-            dx1 = joinTensors(dx1, x1, type=self.joinType)
+        dx2 = self.lrelu(self.decoder[1](dx3, x2.size()))
+        dx2 = joinTensors(dx2, x2, type=self.joinType)
 
-            features3 = self.smooth_ll(dx3)
-            features2 = self.smooth_l(dx2)
-            features1 = self.smooth(dx1)
+        dx1 = self.lrelu(self.decoder[2](dx2, x1.size()))
+        dx1 = joinTensors(dx1, x1, type=self.joinType)
 
-            curr_out_ll = self.predict_ll(features3, frames, x2.size()[-2:])
+        features3 = self.smooth1(dx3)
+        features2 = self.smooth2(dx2)
+        features1 = self.smooth3(dx1)
+
+        # Generate multiple output frames
+        for i in range(1, self.num_outputs + 1):
+            time = i * self.delta_t
+            features3_with_time = self.time_embedding(time, features3)
+
+            curr_out_ll = self.predict_ll(
+                features3_with_time, frames, x2.size()[-2:])
 
             curr_out_l = self.predict_l(features2, frames, x1.size()[-2:])
             curr_out_l = F.interpolate(out_ll, size=out_l.size()
@@ -91,7 +149,7 @@ class ArTEMIS(nn.Module):
             curr_out = self.predict(features1, frames, x0.size()[-2:])
             curr_out = F.interpolate(out_l, size=out.size()
                                      [-2:], mode='bilinear') + out
-            
+
             out_ll.append(curr_out_ll)
             out_l.append(curr_out_l)
             out.append(curr_out)
