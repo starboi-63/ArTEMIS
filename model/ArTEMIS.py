@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from model.SEP_STS_Encoder import ResBlock
+import ChronoSynth
 
 
 class TimeEmbedding(nn.Module):
@@ -94,8 +95,13 @@ class ArTEMIS(nn.Module):
         WIDTH_DIM = ??
         self.time_embedding = TimeEmbedding(
             time_embedding_size, height_dim=HEIGHT_DIM, width_dim=WIDTH_DIM)
-
-        self.predict1 = ??  # TODO: define SynBlock
+        # TODO: define SynBlocks/ChronoSynths
+        self.predict1 = ChronoSynth(
+            num_inputs, num_features, kernel_size, dilation, apply_softmax=True)
+        self.predict2 = ChronoSynth(
+            num_inputs, num_features, kernel_size, dilation, apply_softmax=False)
+        self.predict3 = ChronoSynth(
+            num_inputs, num_features, kernel_size, dilation, apply_softmax=False)
 
     def forward(self, frames, num_outputs=1):
         '''
@@ -130,26 +136,29 @@ class ArTEMIS(nn.Module):
         dx1 = self.lrelu(self.decoder[2](dx2, x1.size()))
         dx1 = joinTensors(dx1, x1, type=self.joinType)
 
-        features3 = self.smooth1(dx3)
-        features2 = self.smooth2(dx2)
-        features1 = self.smooth3(dx1)
+        low_scale_features = self.smooth1(dx3)
+        mid_scale_features = self.smooth2(dx2)
+        high_scale_features = self.smooth3(dx1)
 
         # Generate multiple output frames
         for i in range(1, num_outputs + 1):
             delta_t = 1 / (num_outputs + 1)
             time = i * delta_t
-            features3_with_time = self.time_embedding(time, features3)
+            low_scale_features_with_time = self.time_embedding(
+                time, low_scale_features)
 
-            curr_out_ll = self.predict_ll(
-                features3_with_time, frames, x2.size()[-2:])
+            curr_out_ll = self.predict1(
+                low_scale_features_with_time, frames, x2.size()[-2:])
 
-            curr_out_l = self.predict_l(features2, frames, x1.size()[-2:])
-            curr_out_l = F.interpolate(out_ll, size=out_l.size()
-                                       [-2:], mode='bilinear') + out_l
+            curr_out_l = self.predict2(
+                mid_scale_features, frames, x1.size()[-2:])
+            curr_out_l = F.interpolate(curr_out_ll, size=curr_out_l.size()
+                                       [-2:], mode='bilinear') + curr_out_l
 
-            curr_out = self.predict(features1, frames, x0.size()[-2:])
-            curr_out = F.interpolate(out_l, size=out.size()
-                                     [-2:], mode='bilinear') + out
+            curr_out = self.predict3(
+                high_scale_features, frames, x0.size()[-2:])
+            curr_out = F.interpolate(curr_out_l, size=curr_out.size()
+                                     [-2:], mode='bilinear') + curr_out
 
             out_ll.append(curr_out_ll)
             out_l.append(curr_out_l)
