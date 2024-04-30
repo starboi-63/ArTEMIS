@@ -4,54 +4,8 @@ import torch.nn.functional as F
 from model.SEP_STS_Encoder import ResBlock
 import ChronoSynth
 
-
-class TimeEmbedding(nn.Module):
-    def __init__(self, embedding_size, height_dim, width_dim):
-        '''
-        Inspired by the positional encoding from Attention is All You Need, we calculate
-        Time encodings for each output vector and concatenate it to the channel dimension
-        of the latent representation.
-
-        embedding_size: hyperparameter for the size of the embedding along the channel dimension
-        height_dim: height dimension
-        width_dim: width dimension
-        '''
-        self.dense1 = nn.Linear(1, embedding_size)
-        self.dense2 = nn.Linear(embedding_size, embedding_size * height_dim)
-        self.dense3 = nn.Linear(
-            embedding_size * height_dim, embedding_size * height_dim * width_dim)
-        self.activation = nn.ReLU()
-
-    def forward(self, output_frame_time, latent):
-        '''
-        output_frame_time: value between 0-1 representing the time of the output frame
-        latent: the encoded representation of input frames
-        '''
-        assert output_frame_time > 0 and output_frame_time < 1
-        # Batch * Time * Channel * Height * Width
-        B, T, C, H, W = latent.shape
-
-        # Feed Forward: [1] --> [embedding_size * height_dim * width_dim]
-        output_frame_time = torch.tensor(output_frame_time)
-        time_embedding = self.dense1(output_frame_time)
-        time_embedding = self.activation(time_embedding)
-        time_embedding = self.dense2(time_embedding)
-        time_embedding = self.activation(time_embedding)
-        time_embedding = self.dense3(time_embedding)
-        time_embedding = self.activation(time_embedding)
-
-        # Reshape: [embedding_size * height_dim * width_dim] --> [embedding_size, height_dim, width_dim]
-        time_embedding = torch.reshape(
-            time_embedding, (-1, H, W))
-        # Copy values across Batch and Temporal dimensions: [embedding_size, height_dim, width_dim] --> [B, T, embedding_size, height_dim, width_dim]
-        time_embedding = time_embedding.unsqueeze(
-            0).unsqueeze(0).expand(B, T, -1, -1, -1)
-        # Concat embedding to the latent representation's channel dimension: [B, T, embedding_size, height_dim, width_dim] --> [B, T, C + embedding_size, H, W]
-        return torch.cat([latent, time_embedding], 2)
-
-
 class ArTEMIS(nn.Module):
-    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1, time_embedding_size=64):
+    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
         super().__init__()
 
         num_features = [192, 128, 64, 32]
@@ -90,18 +44,12 @@ class ArTEMIS(nn.Module):
         self.smooth2 = SmoothNet(num_features[2]*growth, num_features_out)
         self.smooth3 = SmoothNet(num_features[3]*growth, num_features_out)
 
-        # TODO: Figure out what HEIGHT_DIM and WIDTH_DIM are
-        HEIGHT_DIM = ??
-        WIDTH_DIM = ??
-        self.time_embedding = TimeEmbedding(
-            time_embedding_size, height_dim=HEIGHT_DIM, width_dim=WIDTH_DIM)
-        # TODO: define SynBlocks/ChronoSynths
         self.predict1 = ChronoSynth(
-            num_inputs, num_features, kernel_size, dilation, apply_softmax=True)
+            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=True)
         self.predict2 = ChronoSynth(
-            num_inputs, num_features, kernel_size, dilation, apply_softmax=False)
+            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
         self.predict3 = ChronoSynth(
-            num_inputs, num_features, kernel_size, dilation, apply_softmax=False)
+            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
 
     def forward(self, frames, num_outputs=1):
         '''
@@ -113,8 +61,7 @@ class ArTEMIS(nn.Module):
         B, T, C, H, W = images.shape
 
         # Batch mean normalization works slightly better than global mean normalization (hence the repeated calls to .mean() below)
-        mean_ = images.mean(2, keepdim=True).mean(
-            3, keepdim=True).mean(4, keepdim=True)
+        mean_ = images.mean(2, keepdim=True).mean(3, keepdim=True).mean(4, keepdim=True)
         images = images - mean_
 
         out = []
@@ -143,20 +90,18 @@ class ArTEMIS(nn.Module):
         # Generate multiple output frames
         for i in range(1, num_outputs + 1):
             delta_t = 1 / (num_outputs + 1)
-            time = i * delta_t
-            low_scale_features_with_time = self.time_embedding(
-                time, low_scale_features)
+            time_tensor = torch.tensor([i * delta_t])
 
             curr_out_ll = self.predict1(
-                low_scale_features_with_time, frames, x2.size()[-2:])
+                low_scale_features, frames, x2.size()[-2:], time_tensor)
 
             curr_out_l = self.predict2(
-                mid_scale_features, frames, x1.size()[-2:])
+                mid_scale_features, frames, x1.size()[-2:], time_tensor)
             curr_out_l = F.interpolate(curr_out_ll, size=curr_out_l.size()
                                        [-2:], mode='bilinear') + curr_out_l
 
             curr_out = self.predict3(
-                high_scale_features, frames, x0.size()[-2:])
+                high_scale_features, frames, x0.size()[-2:], time_tensor)
             curr_out = F.interpolate(curr_out_l, size=curr_out.size()
                                      [-2:], mode='bilinear') + curr_out
 
