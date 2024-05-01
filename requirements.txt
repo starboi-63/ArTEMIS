@@ -12,4 +12,4 @@ typing_extensions
 tqdm
 timm
 einops
-cupy
+cupy==7.5.0
