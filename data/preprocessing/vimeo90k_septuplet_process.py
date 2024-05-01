@@ -5,7 +5,7 @@ from PIL import Image
 import random
 
 
-class VimeoSepTuplet(Dataset):
+class VimeoSeptuplet(Dataset):
 
     def __init__(self, data_root, is_training):
         # original header was   input_frames="1357", mode='mini'):
@@ -26,8 +26,10 @@ class VimeoSepTuplet(Dataset):
         # par down sep_trainlist.txt files after downloading vimeo dataset
         train_fn = os.path.join(self.data_root, 'sep_trainlist.txt')
         test_fn = os.path.join(self.data_root, 'sep_testlist.txt')
+
         with open(train_fn, 'r') as f:
             self.trainlist = f.read().splitlines()
+            
         with open(test_fn, 'r') as f:
             self.testlist = f.read().splitlines()
 
@@ -117,7 +119,7 @@ class VimeoSepTuplet(Dataset):
 def get_loader(mode, data_root, batch_size, shuffle, num_workers, test_mode=None):
     is_training = True if mode == 'train' else False
 
-    dataset = VimeoSepTuplet(data_root, is_training=is_training)
+    dataset = VimeoSeptuplet(data_root, is_training=is_training)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
 # if __name__ == "__main__":
