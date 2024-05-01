@@ -6,7 +6,7 @@ from model.helper_modules import upSplit, joinTensors, Conv_3d
 
 
 class ArTEMIS(nn.Module):
-    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
+    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1, num_outputs=3): 
         super().__init__()
 
         num_features = [192, 128, 64, 32]

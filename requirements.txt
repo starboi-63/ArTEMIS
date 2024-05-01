@@ -11,4 +11,4 @@ typing_extensions==4.11.0
 tqdm==4.66.2
 timm==0.9.16
 einops==0.8.0
-
+cudatoolkit

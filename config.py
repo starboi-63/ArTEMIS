@@ -1,4 +1,5 @@
 import argparse
+import os
 
 arg_lists = []
 parser = argparse.ArgumentParser()
@@ -10,23 +11,27 @@ def add_argument_group(name):
     return arg
 
 
-# Dataset
+# Dataset selection and paths
 data_arg = add_argument_group('Dataset')
+
 data_arg.add_argument('--dataset', type=str, default='vimeo90K_septuplet')
-data_arg.add_argument('--data_root', type=str, default='/home/zhihao/DATA-M2/video_interpolation/vimeo_septuplet/')
+data_arg.add_argument('--data_root', type=str, default=os.path.join(os.getcwd(), 'data/sources/vimeo_septuplet/'))
 
 # data_arg.add_argument('--dataset', type=str, default='Davis')
-# data_arg.add_argument('--data_root', type=str, default='/home/zhihao/DATA-M2/video_interpolation/Davis/')
+# data_arg.add_argument('--data_root', type=str, default=os.path.join(os.getcwd(), 'data/sources/davis/'))
 
 # data_arg.add_argument('--dataset', type=str, default='ucf101')
-# data_arg.add_argument('--data_root', type=str, default='/home/zhihao/DATA-M2/video_interpolation/UCF/')
+# data_arg.add_argument('--data_root', type=str, default=os.path.join(os.getcwd(), 'data/sources/ucf101/'))
 
-# Model
+# Model parameters
 model_arg = add_argument_group('Model')
 model_choices = ["ArTEMIS"]
 model_arg.add_argument('--model', choices=model_choices, type=str, default="ArTEMIS")
 model_arg.add_argument('--nbr_frame', type=int, default=4)
 model_arg.add_argument('--joinType', choices=["concat", "add", "none"], default="concat")
+model_arg.add_argument('--kernel_size', type=int, default=5)
+model_arg.add_argument('--dilation', type=int, default=1)
+model_arg.add_argument('--num_outputs', type=int, default=3)
 
 # Training / test parameters
 learn_arg = add_argument_group('Learning')
@@ -44,7 +49,7 @@ learn_arg.add_argument('--checkpoint_dir', type=str, default=".")
 learn_arg.add_argument("--load_from", type=str, default='checkpoints/VFIT_B/model_best.pth') # TODO: change this
 learn_arg.add_argument("--pretrained", type=str, help="Load from a pretrained model.")
 
-# Misc
+# Miscellaneous
 misc_arg = add_argument_group('Misc')
 misc_arg.add_argument('--exp_name', type=str, default='exp')
 misc_arg.add_argument('--log_iter', type=int, default=100)

@@ -1,6 +1,6 @@
 # ArTEMIS
 
-Arbitrary timestep Transformer for Enhanced Multi-frame Interpolation and Synthesis
+Arbitrary timestep Transformer for Enhanced Multi-frame Interpolation and Synthesis.
 
 ## Getting Started
 
@@ -8,7 +8,7 @@ ArTEMIS is a deep learning model that interleaves [VFIT](https://github.com/zhsh
 
 ### Prerequisites
 
-Ensure that you have Python installed on your system. To use ArTEMIS, you need to set up a Python environment with the necessary packages installed. You can do this by running the following commands in your terminal.
+Ensure that you have [Python](https://www.python.org) installed on your system. To use ArTEMIS, you need to set up a Python environment with the necessary packages installed. You can do this by running the following commands in your terminal.
 
 First, clone the repository to your local machine.
 
