@@ -13,4 +13,3 @@ tqdm
 timm
 einops
 cupy
-cudatoolkit
