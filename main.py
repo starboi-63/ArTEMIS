@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-from model.artemis import ArTEMIS
+from model import ArTEMIS
 from torch.optim import Adamax
 from loss import Loss
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
