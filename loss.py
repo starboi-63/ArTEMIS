@@ -76,7 +76,7 @@ class Loss(nn.modules.loss._Loss):
                     '{:.3f} * {}'.format(loss_info['weight'], loss_info['type']))
                 self.loss_module.append(loss_info['function'])
 
-        device = torch.device('cuda' if args.cude else 'cpu')
+        device = torch.device('cuda' if args.cuda else 'cpu')
         self.loss_module.to(device)
         if args.cuda:
             self.loss_module = nn.DataParallel(self.loss_module)
