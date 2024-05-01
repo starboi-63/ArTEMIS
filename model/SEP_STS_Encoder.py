@@ -1,5 +1,5 @@
 import torch.nn as nn
-from model.Sep_STS_Layer import SepSTSBasicLayer
+from model.sep_sts_layer import SepSTSBasicLayer
 
 
 class BasicStem(nn.Sequential):
@@ -22,6 +22,7 @@ class SepSTSLayer(nn.Module):
         out = self.upper(x)
         return out
 
+
 class ResBlock(nn.Module):
     def __init__(self, channel, kernel_size):
         super(ResBlock, self).__init__()
@@ -37,6 +38,7 @@ class ResBlock(nn.Module):
 
         x += res
         return self.relu(x)
+
 
 class ResLayer(nn.Module):
     def __init__(self, plane, num_layer, kernel_size=3):

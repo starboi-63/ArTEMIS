@@ -2,14 +2,13 @@ import torch
 import torch.nn as nn
 import numpy as np
 from timm.models.layers import trunc_normal_
-
 from functools import reduce, lru_cache
 from operator import mul
 from einops import rearrange
 
+
 class Mlp(nn.Module):
     """ Multilayer perceptron."""
-
     def __init__(self, in_features, hidden_features=None, out_features=None, activation=nn.GELU):
         super().__init__()
         out_features = out_features or in_features
@@ -221,6 +220,7 @@ class WindowAttention3D(nn.Module):
         x = self.project(x)
         return x
 
+
 class SepSTSBlock(nn.Module):
     """ A basic Sep-STS Block.
     Args:
@@ -321,6 +321,7 @@ class SepSTSBlock(nn.Module):
 
         return x
 
+
 # cache each stage results
 @lru_cache()
 def compute_mask(D, H, W, window_size, shift_size, device):
@@ -336,6 +337,7 @@ def compute_mask(D, H, W, window_size, shift_size, device):
     attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
     attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
     return attn_mask
+
 
 class SepSTSBasicLayer(nn.Module):
     """ A Sep-STS layer for one stage.
