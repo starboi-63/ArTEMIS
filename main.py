@@ -7,6 +7,7 @@ import os
 
 import torch
 import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
 
 from model.artemis import ArTEMIS
 from torch.optim import Adamax
@@ -27,29 +28,29 @@ def load_checkpoint(args, model, optimizer, path):
 
 ##### Parse CmdLine Arguments #####
 args, unparsed = config.get_args()
-cwd = os.getcwd()
-print(args)
-
-save_loc = os.path.join(args.checkpoint_dir, "checkpoints")
+save_location = os.path.join(args.checkpoint_dir, "checkpoints")
 
 device = torch.device('cuda' if args.cuda else 'cpu')
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 
 torch.manual_seed(args.random_seed)
+
 if args.cuda:
     torch.cuda.manual_seed(args.random_seed)
 
+# Initialize Tensorboard
+writer = SummaryWriter(log_dir=os.path.join(args.checkpoint_dir, 'tensorboard_logs'))
+
+# Initialize DataLoaders
 if args.dataset == "vimeo90K_septuplet":
-    train_loader = get_loader(
-        'train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
-    test_loader = get_loader('test', args.data_root, args.test_batch_size,
-                             shuffle=False, num_workers=args.num_workers)
+    train_loader = get_loader('train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
+    test_loader = get_loader('test', args.data_root, args.test_batch_size, shuffle=False, num_workers=args.num_workers)
 else:
     raise NotImplementedError
 
 print("Building model: %s" % args.model)
-# number of outputs = 1 implicitly
+
 # Important parameters: num_inputs=4, num_outputs=3
 # Model can calculate delta_t, the perceived timestep between each frame, including inputs and outputs
 model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
@@ -198,22 +199,24 @@ def adjust_learning_rate(optimizer, epoch):
 
 
 def main(args):
-    # load_checkpoint(args, model, optimizer, save_loc+'/epoch20/model_best.pth')
+    # load_checkpoint(args, model, optimizer, save_location+'/epoch20/model_best.pth')
     # test_loss, psnr, ssim = test(args, args.start_epoch)
     # print(psnr)
 
     best_psnr = 0
+
     for epoch in range(args.start_epoch, args.max_epoch):
         adjust_learning_rate(optimizer, epoch)
         start_time = time.time()
         train(args, epoch)
 
+        # save checkpoint
         torch.save({
             'epoch': epoch,
             'state_dict': model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'lr': optimizer.param_groups[-1]['lr']
-        }, os.path.join(save_loc, 'checkpoint.pth'))
+        }, os.path.join(save_location, 'checkpoint.pth'))
 
         test_loss, psnr, ssim = test(args, epoch)
 
@@ -222,8 +225,8 @@ def main(args):
         best_psnr = max(psnr, best_psnr)
 
         if is_best:
-            shutil.copyfile(os.path.join(save_loc, 'checkpoint.pth'),
-                            os.path.join(save_loc, 'model_best.pth'))
+            shutil.copyfile(os.path.join(save_location, 'checkpoint.pth'),
+                            os.path.join(save_location, 'model_best.pth'))
 
         one_epoch_time = time.time() - start_time
         print_log(epoch, args.max_epoch, one_epoch_time, psnr,

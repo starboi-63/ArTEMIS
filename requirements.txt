@@ -5,3 +5,4 @@ torchmetrics
 tqdm
 timm
 einops
+tensorboard
