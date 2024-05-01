@@ -46,7 +46,7 @@ learn_arg.add_argument('--max_epoch', type=int, default=100)
 learn_arg.add_argument('--resume', action='store_true')
 learn_arg.add_argument('--resume_exp', type=str, default=None)
 learn_arg.add_argument('--checkpoint_dir', type=str, default=".")
-learn_arg.add_argument("--load_from", type=str, default='checkpoints/VFIT_B/model_best.pth') # TODO: change this
+learn_arg.add_argument("--load_from", type=str, default='checkpoints/ArTEMIS/model_best.pth')
 learn_arg.add_argument("--pretrained", type=str, help="Load from a pretrained model.")
 
 # Miscellaneous
