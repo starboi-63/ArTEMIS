@@ -1,12 +1,12 @@
 filelock
-fsspec
+fsspec==2023.6.0
 Jinja2
 MarkupSafe
 mpmath
 networkx
 numpy
 sympy
-torch
+torch==2.2.1
 torchvision
 typing_extensions
 tqdm
