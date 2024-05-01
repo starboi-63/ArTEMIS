@@ -10,11 +10,6 @@ def add_argument_group(name):
     arg_lists.append(arg)
     return arg
 
-
-# Environment
-env_arg = add_argument_group("Environment")
-env_arg.add_argument("--google_colab", type=bool, default=False)
-
 # Dataset selection and paths
 data_arg = add_argument_group("Dataset")
 data_arg.add_argument("--dataset", type=str, default="vimeo90K_septuplet")
@@ -44,21 +39,14 @@ learn_arg.add_argument("--resume_exp", type=str, default=None)
 learn_arg.add_argument("--pretrained", type=str, help="Load from a pretrained model.")
 
 # Directories
-args = parser.parse_args()
-
-default_data_root = os.path.join(os.getcwd(), "data/sources/vimeo_septuplet/")
-default_checkpoint_dir = "/content/drive/My Drive/Deep Learning/ArTEMIS/training" if args.google_colab else "./training/"
-default_load_from = "/content/drive/My Drive/Deep Learning/ArTEMIS/training/checkpoints/ArTEMIS/model_best.pth" if args.google_colab else "./training/checkpoints/ArTEMIS/model_best.pth"
-default_log_dir = "/content/drive/My Drive/Deep Learning/ArTEMIS/training/TensorBoard_logs" if args.google_colab else "./training/TensorBoard_logs"
-
 dir_arg = add_argument_group("Directories")
-dir_arg.add_argument("--data_root", type=str, default=default_data_root)
-dir_arg.add_argument("--checkpoint_dir", type=str, default=default_checkpoint_dir)
-dir_arg.add_argument("--load_from", type=str, default=default_load_from)
-dir_arg.add_argument("--log_dir", type=str, default=default_log_dir)
+dir_arg.add_argument("--data_root", type=str, default=os.path.join(os.getcwd(), "./data/sources/vimeo_septuplet/"))
+dir_arg.add_argument("--checkpoint_dir", type=str, default="./training/")
+dir_arg.add_argument("--load_from", type=str, default="./training/checkpoints/ArTEMIS/model_best.pth")
+dir_arg.add_argument("--log_dir", type=str, default="./training/logs")
     
 # Miscellaneous
-misc_arg = add_argument_group("Misc")
+misc_arg = add_argument_group("Miscellaneous")
 misc_arg.add_argument("--exp_name", type=str, default="exp")
 misc_arg.add_argument("--log_iter", type=int, default=100)
 misc_arg.add_argument("--num_gpu", type=int, default=1)
