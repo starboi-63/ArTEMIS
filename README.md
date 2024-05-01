@@ -4,6 +4,8 @@ Arbitrary timestep Transformer for Enhanced Multi-frame Interpolation and Synthe
 
 ## Getting Started
 
+ArTEMIS is a deep learning model that interleaves [VFIT](https://github.com/zhshi0816/Video-Frame-Interpolation-Transformer) and [EDSC](https://github.com/Xianhang/EDSC-pytorch) together in order to enable the synthesis of intermediate video frames at arbitrary timesteps while using multiple frames on either side of the target timestep as context. The model is trained on the [Vimeo-90K Septuplet dataset](http://toflow.csail.mit.edu/).
+
 ### Prerequisites
 
 Ensure that you have Python installed on your system. To use ArTEMIS, you need to set up a Python environment with the necessary packages installed. You can do this by running the following commands in your terminal.
