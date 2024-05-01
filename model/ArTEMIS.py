@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-from model.sep_sts_encoder import ResBlock
+from model.sep_sts_encoder import ResBlock, SepSTSEncoder
 from model.chrono_synth import ChronoSynth
+from model.helper_modules import upSplit, joinTensors, Conv_3d
+
 
 class ArTEMIS(nn.Module):
     def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
@@ -21,7 +23,6 @@ class ArTEMIS(nn.Module):
         growth = 2 if joinType == "concat" else 1
         self.lrelu = nn.LeakyReLU(0.2, inplace=True)
 
-        from model.SEP_STS_Encoder import SepSTSEncoder
         self.encoder = SepSTSEncoder(
             num_features, num_inputs, spatial_window_sizes, num_heads)
 
