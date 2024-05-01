@@ -1,16 +1,17 @@
-from model import ArTEMIS
-from torch.optim import Adamax
 import time
+from tqdm import tqdm
+import config
+import myutils
+import shutil
+import os
 
 import torch
 import torch.nn as nn
-from tqdm import tqdm
 
-import config
-import myutils
+from model.artemis import ArTEMIS
+from torch.optim import Adamax
 from loss import Loss
-import shutil
-import os
+from data.preprocessing.vimeo90k_septuplet_process import get_loader
 
 
 def load_checkpoint(args, model, optimizer, path):
@@ -40,7 +41,6 @@ if args.cuda:
     torch.cuda.manual_seed(args.random_seed)
 
 if args.dataset == "vimeo90K_septuplet":
-    from dataset.vimeo90k_septuplet_process import get_loader
     train_loader = get_loader(
         'train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_loader = get_loader('test', args.data_root, args.test_batch_size,
@@ -221,6 +221,7 @@ def main(args):
         # save checkpoint
         is_best = psnr > best_psnr
         best_psnr = max(psnr, best_psnr)
+
         if is_best:
             shutil.copyfile(os.path.join(save_loc, 'checkpoint.pth'),
                             os.path.join(save_loc, 'model_best.pth'))

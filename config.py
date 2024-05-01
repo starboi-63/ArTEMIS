@@ -13,8 +13,7 @@ def add_argument_group(name):
 # Dataset
 data_arg = add_argument_group('Dataset')
 data_arg.add_argument('--dataset', type=str, default='vimeo90K_septuplet')
-data_arg.add_argument('--data_root', type=str,
-                      default='/home/zhihao/DATA-M2/video_interpolation/vimeo_septuplet/')
+data_arg.add_argument('--data_root', type=str, default='/home/zhihao/DATA-M2/video_interpolation/vimeo_septuplet/')
 
 # data_arg.add_argument('--dataset', type=str, default='Davis')
 # data_arg.add_argument('--data_root', type=str, default='/home/zhihao/DATA-M2/video_interpolation/Davis/')
@@ -24,12 +23,10 @@ data_arg.add_argument('--data_root', type=str,
 
 # Model
 model_arg = add_argument_group('Model')
-model_choices = ["VFIT_S", "VFIT_B"]
-model_arg.add_argument('--model', choices=model_choices,
-                       type=str, default="VFIT_B")
+model_choices = ["ArTEMIS"]
+model_arg.add_argument('--model', choices=model_choices, type=str, default="ArTEMIS")
 model_arg.add_argument('--nbr_frame', type=int, default=4)
-model_arg.add_argument(
-    '--joinType', choices=["concat", "add", "none"], default="concat")
+model_arg.add_argument('--joinType', choices=["concat", "add", "none"], default="concat")
 
 # Training / test parameters
 learn_arg = add_argument_group('Learning')
@@ -44,10 +41,8 @@ learn_arg.add_argument('--max_epoch', type=int, default=100)
 learn_arg.add_argument('--resume', action='store_true')
 learn_arg.add_argument('--resume_exp', type=str, default=None)
 learn_arg.add_argument('--checkpoint_dir', type=str, default=".")
-learn_arg.add_argument("--load_from", type=str,
-                       default='checkpoints/VFIT_B/model_best.pth')
-learn_arg.add_argument("--pretrained", type=str,
-                       help="Load from a pretrained model.")
+learn_arg.add_argument("--load_from", type=str, default='checkpoints/VFIT_B/model_best.pth') # TODO: change this
+learn_arg.add_argument("--pretrained", type=str, help="Load from a pretrained model.")
 
 # Misc
 misc_arg = add_argument_group('Misc')

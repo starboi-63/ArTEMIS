@@ -46,4 +46,8 @@ Finally, install the required packages, which are listed in the `requirements.tx
 pip install -r requirements.txt
 ```
 
-### Usage
+## Usage
+
+## Training
+
+To train the model yourself, you will need to download the _"The original training + test set (82GB)"_ version of the Vimeo-90K Septuplet dataset. This data can be found on the official website at [http://toflow.csail.mit.edu/](http://toflow.csail.mit.edu/). The resulting data folder should be placed in the `data/sources/` directory.
