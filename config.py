@@ -55,7 +55,7 @@ dir_arg = add_argument_group("Directories")
 dir_arg.add_argument("--data_root", type=str, default=default_data_root)
 dir_arg.add_argument("--checkpoint_dir", type=str, default=default_checkpoint_dir)
 dir_arg.add_argument("--load_from", type=str, default=default_load_from)
-misc_arg.add_argument("--log_dir", type=str, default=default_log_dir)
+dir_arg.add_argument("--log_dir", type=str, default=default_log_dir)
     
 # Miscellaneous
 misc_arg = add_argument_group("Misc")
