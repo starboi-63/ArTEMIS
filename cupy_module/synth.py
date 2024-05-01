@@ -255,7 +255,7 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 
     return strKernel
 
-@cupy.util.memoize(for_each_device=True)
+@cupy._util.memoize(for_each_device=True)
 def cupy_launch(strFunc, strKernel):
     return cupy.cuda.compile_with_cache(strKernel).get_function(strFunc)
 
