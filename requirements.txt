@@ -4,4 +4,3 @@ torchvision
 tqdm
 timm
 einops
-cupy-cuda121
