@@ -232,12 +232,12 @@ class SepSTSBlock(nn.Module):
         mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
         qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
+        activation (nn.Module, optional): Activation layer. Default: nn.GELU
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
     """
     def __init__(self, dim, num_heads, depth_window_size=(1, 8, 8), shift_size=(0, 0, 0),
                  point_window_size=(4, 1, 1), mlp_ratio=4., qkv_bias=True, qk_scale=None,
-                 act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+                 activation=nn.GELU, norm_layer=nn.LayerNorm):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -259,7 +259,7 @@ class SepSTSBlock(nn.Module):
 
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, activation=activation)
 
     def forward_part1(self, x, mask_matrix):
         B, D, H, W, C = x.shape
