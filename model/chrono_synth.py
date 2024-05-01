@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from helper_modules import MySequential, Conv_2d
+from model.helper_modules import MySequential, Conv_2d
 
 
 class ChronoSynth(nn.Module):

@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from sep_sts_encoder import ResBlock, SepSTSEncoder
-from chrono_synth import ChronoSynth
-from helper_modules import upSplit, joinTensors, Conv_3d
+from model.sep_sts_encoder import ResBlock, SepSTSEncoder
+from model.chrono_synth import ChronoSynth
+from model.helper_modules import upSplit, joinTensors, Conv_3d
 
 
 class ArTEMIS(nn.Module):
