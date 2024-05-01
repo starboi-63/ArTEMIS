@@ -4,12 +4,13 @@ import config
 import myutils
 import shutil
 import os
+import sys
 
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-from model import ArTEMIS
+from model.artemis import ArTEMIS
 from torch.optim import Adamax
 from loss import Loss
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
