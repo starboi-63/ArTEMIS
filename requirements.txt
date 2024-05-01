@@ -1,15 +1,7 @@
-filelock
-fsspec==2023.6.0
-Jinja2
-MarkupSafe
-mpmath
-networkx
 numpy
-sympy
-torch==2.2.1
+torch
 torchvision
-typing_extensions
 tqdm
 timm
 einops
-cupy==7.5.0
+cupy
