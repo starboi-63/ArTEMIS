@@ -4,8 +4,9 @@ import torch.nn.functional as F
 from model.SEP_STS_Encoder import ResBlock
 import ChronoSynth
 
+
 class ArTEMIS(nn.Module):
-    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
+    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1):
         super().__init__()
 
         num_features = [192, 128, 64, 32]
@@ -35,7 +36,7 @@ class ArTEMIS(nn.Module):
         def SmoothNet(in_channels, out_channels):
             return nn.Sequential(
                 Conv_3d(in_channels, out_channels, kernel_size=3,
-                       stride=1, padding=1, batchnorm=False),
+                        stride=1, padding=1, batchnorm=False),
                 ResBlock(out_channels, kernel_size=3),
             )
 
@@ -58,10 +59,11 @@ class ArTEMIS(nn.Module):
         frames: input frames
         '''
         images = torch.stack(frames, dim=2)
-        B, T, C, H, W = images.shape
+        B, C, T, H, W = images.shape
 
         # Batch mean normalization works slightly better than global mean normalization (hence the repeated calls to .mean() below)
-        mean_ = images.mean(2, keepdim=True).mean(3, keepdim=True).mean(4, keepdim=True)
+        mean_ = images.mean(2, keepdim=True).mean(
+            3, keepdim=True).mean(4, keepdim=True)
         images = images - mean_
 
         out = []
@@ -124,7 +126,8 @@ class upSplit(nn.Module):
     def forward(self, x, output_size):
         x = self.upconv(x, output_size=output_size)
         return x
-    
+
+
 def joinTensors(X1, X2, type="concat"):
 
     if type == "concat":
@@ -134,11 +137,13 @@ def joinTensors(X1, X2, type="concat"):
     else:
         return X1
 
+
 class Conv_2d(nn.Module):
 
     def __init__(self, in_ch, out_ch, kernel_size, stride=1, padding=0, bias=False, batchnorm=False):
         super().__init__()
-        self.conv = [nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)]
+        self.conv = [nn.Conv2d(
+            in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)]
 
         if batchnorm:
             self.conv += [nn.BatchNorm2d(out_ch)]
@@ -147,6 +152,7 @@ class Conv_2d(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
 
 class Conv_3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, batchnorm=False):
@@ -161,7 +167,8 @@ class Conv_3d(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
-    
+
+
 class MySequential(nn.Sequential):
     def forward(self, input, output_size):
         for module in self:
@@ -170,4 +177,3 @@ class MySequential(nn.Sequential):
             else:
                 input = module(input)
         return input
-
