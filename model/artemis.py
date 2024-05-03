@@ -68,7 +68,6 @@ class ArTEMIS(nn.Module):
         out = []
         out_l = []
         out_ll = []
-        print("frames shape", len(frames))
 
         # __________________________________________________________________
         # TODO: Modify VFIT architecture below to incorporate time
@@ -86,6 +85,7 @@ class ArTEMIS(nn.Module):
         dx1 = joinTensors(dx1, x1, type=self.joinType)
 
         low_scale_features = self.smooth1(dx3)
+        print("features shape", low_scale_features.shape)
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
