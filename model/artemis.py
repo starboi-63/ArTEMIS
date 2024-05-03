@@ -85,11 +85,8 @@ class ArTEMIS(nn.Module):
         dx1 = joinTensors(dx1, x1, type=self.joinType)
 
         low_scale_features = self.smooth1(dx3)
-        print("low shape", low_scale_features.shape)
         mid_scale_features = self.smooth2(dx2)
-        print("mid shape shape", low_scale_features.shape)
         high_scale_features = self.smooth3(dx1)
-        print("high shape", low_scale_features.shape)
 
         # Generate multiple output frames
         for i in range(1, num_outputs + 1):
