@@ -76,13 +76,18 @@ class ChronoSynth(nn.Module):
             num_features * num_inputs, num_features, kernel_size=1, stride=1, batchnorm=False, bias=True)
         self.lrelu = nn.LeakyReLU(0.2)
 
-    def forward(self, features, frames, output_size, time_tensor):
+    def forward(self, features, frames, output_size, time_scalar):
+        """
+        time_scalar: a value 't' from 0 to 1 that represents the arbitrary time between frames
+        We create the time scalar from the dimensions of the input feature 
+        """
         H, W = output_size
 
         unbound = torch.unbind(features, 1)
         print("Unbound len: ", len(unbound))
 
         print("Unbound shape : ", type(unbound[0]))
+        time_tensor = torch.ones((1, 1, H, W)).to(features.device) * time_scalar
         print("time tensor", time_tensor)
 
         F0, F1, F2, F3 = unbound

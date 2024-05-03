@@ -90,20 +90,23 @@ class ArTEMIS(nn.Module):
 
         # Generate multiple output frames
         for i in range(1, num_outputs + 1):
-            time_tensor = torch.tensor([i * self.delta_t])
-            print("delta t: ", self.delta_t)
-            print("time tensor", time_tensor)
+            # time_tensor = torch.tensor([i * self.delta_t])
+            # time_tensor = torch.ones((1, 1, H, W)) * self.delta_t
+            # print("time tensor", time_tensor)
+            
+            # This is the timestep for the current frame 
+            time_step = i * self.delta_t
 
             curr_out_ll = self.predict1(
-                low_scale_features, frames, x2.size()[-2:], time_tensor)
+                low_scale_features, frames, x2.size()[-2:], time_step)
 
             curr_out_l = self.predict2(
-                mid_scale_features, frames, x1.size()[-2:], time_tensor)
+                mid_scale_features, frames, x1.size()[-2:], time_step)
             curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()
                                        [-2:], mode='bilinear') + curr_out_l
 
             curr_out = self.predict3(
-                high_scale_features, frames, x0.size()[-2:], time_tensor)
+                high_scale_features, frames, x0.size()[-2:], time_step)
             curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()
                                      [-2:], mode='bilinear') + curr_out
 
