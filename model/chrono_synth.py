@@ -4,8 +4,10 @@ from model.helper_modules import MySequential, Conv_2d
 
 
 class ChronoSynth(nn.Module):
-    def __init__(self, num_inputs, num_features, kernel_size, dilation, apply_softmax=True):
+    def __init__(self, num_inputs, num_features, kernel_size, dilation, delta_t, apply_softmax=True):
         super(ChronoSynth, self).__init__()
+
+        self.delta_t = delta_t
 
         # Subnetwork to learn vertical and horizontal offsets during convolution
         def Subnet_offset(kernel_size):
@@ -78,19 +80,16 @@ class ChronoSynth(nn.Module):
         H, W = output_size
 
         unbound = torch.unbind(features, 1)
+        print("Unbound len: ", len(unbound))
+
         print("Unbound shape : ", type(unbound[0]))
 
         F0, F1, F2, F3 = unbound
 
-        F0 = torch.cat([F0, time_tensor - 1])
+        F0 = torch.cat([F0, time_tensor + self.delta_t])
         F1 = torch.cat([F1, time_tensor])
         F2 = torch.cat([F2, 1 - time_tensor])
-        F3 = torch.cat([F3, 2 - time_tensor])
-
-        # F0 = torch.cat([features[0], time_tensor - 1])
-        # F1 = torch.cat([features[1], time_tensor])
-        # F2 = torch.cat([features[2], 1 - time_tensor])
-        # F3 = torch.cat([features[3], 2 - time_tensor])
+        F3 = torch.cat([F3, 1 - time_tensor + self.delta_t])
 
         occ = torch.cat([F0, F1, F2, F3], 1)
         occ = self.lrelu(self.feature_fuse(occ))
