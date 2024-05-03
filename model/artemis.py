@@ -18,7 +18,7 @@ class ArTEMIS(nn.Module):
         # self.num_outputs = num_outputs
         # delta_t: the perceived timestep between each frame
         # We treat all input and output frames as spaced out evenly
-        # self.delta_t = 1 / (num_outputs + 1)
+        self.delta_t = 1 / (num_outputs + 1)
 
         growth = 2 if joinType == "concat" else 1
         self.lrelu = nn.LeakyReLU(0.2, inplace=True)
@@ -45,11 +45,11 @@ class ArTEMIS(nn.Module):
         self.smooth3 = SmoothNet(num_features[3]*growth, num_features_out)
 
         self.predict1 = ChronoSynth(
-            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=True)
+            num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=True)
         self.predict2 = ChronoSynth(
-            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
+            num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
         self.predict3 = ChronoSynth(
-            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
+            num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
 
     def forward(self, frames, num_outputs=1):
         '''
@@ -90,8 +90,7 @@ class ArTEMIS(nn.Module):
 
         # Generate multiple output frames
         for i in range(1, num_outputs + 1):
-            delta_t = 1 / (num_outputs + 1)
-            time_tensor = torch.tensor([i * delta_t])
+            time_tensor = torch.tensor([i * self.delta_t])
 
             curr_out_ll = self.predict1(
                 low_scale_features, frames, x2.size()[-2:], time_tensor)
