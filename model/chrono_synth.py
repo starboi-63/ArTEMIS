@@ -78,8 +78,7 @@ class ChronoSynth(nn.Module):
         H, W = output_size
 
         unbound = torch.unbind(features, 1)
-        
-        print("Unbound tensors: ", len(unbound))
+        print("Unbound shape : ", unbound.shape)
 
         F0, F1, F2, F3 = unbound
 
