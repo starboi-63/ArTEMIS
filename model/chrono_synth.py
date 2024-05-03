@@ -85,11 +85,11 @@ class ChronoSynth(nn.Module):
 
         # unbound = torch.unbind(features, 1)
         # print("Unbound len: ", len(unbound))
+        # print("Unbound shape : ", type(unbound[0]))
         time_tensor = torch.ones((1, 1, features.shape[3], features.shape[4])).to(features.device) * time_scalar
 
-        # print("Unbound shape : ", type(unbound[0]))
-        # print("features shape", features.shape)
-        # print("time tensor shape", time_tensor.shape)
+        print("features shape", features.shape)
+        print("time tensor shape", time_tensor.shape)
 
         # F0, F1, F2, F3 = unbound
         #
