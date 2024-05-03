@@ -300,7 +300,7 @@ class SepSTSBlock(nn.Module):
         x_windows = window_partition(x, window_size)
         attn_windows = self.point_attn(x_windows, mask=None)
         attn_windows = attn_windows.view(-1, *(window_size + (C,)))
-        x = window_partition(attn_windows, window_size, B, D, H, W)
+        x = undo_window_partition(attn_windows, window_size, B, D, H, W)
 
         return x
 
