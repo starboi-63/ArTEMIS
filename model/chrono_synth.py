@@ -77,15 +77,21 @@ class ChronoSynth(nn.Module):
     def forward(self, features, frames, output_size, time_tensor):
         H, W = output_size
 
-        unbound = torch.unbind(features, 1)
-
-        print("Unbound tensors: ", len(unbound))
+        # unbound = torch.unbind(features, 1)
+        #
+        # print("Unbound tensors: ", len(unbound))
         
-        F0, F1, F2, F3 = unbound
-        F0 = torch.cat([F0, time_tensor - 1])
-        F1 = torch.cat([F1, time_tensor])
-        F2 = torch.cat([F2, 1 - time_tensor])
-        F3 = torch.cat([F3, 2 - time_tensor])
+        # F0, F1, F2, F3 = unbound
+
+        # F0 = torch.cat([F0, time_tensor - 1])
+        # F1 = torch.cat([F1, time_tensor])
+        # F2 = torch.cat([F2, 1 - time_tensor])
+        # F3 = torch.cat([F3, 2 - time_tensor])
+
+        F0 = torch.cat([features[0], time_tensor - 1])
+        F1 = torch.cat([features[1], time_tensor])
+        F2 = torch.cat([features[2], 1 - time_tensor])
+        F3 = torch.cat([features[3], 2 - time_tensor])
 
         occ = torch.cat([F0, F1, F2, F3], 1)
         occ = self.lrelu(self.feature_fuse(occ))
