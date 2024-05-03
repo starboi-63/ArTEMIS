@@ -68,6 +68,7 @@ class ArTEMIS(nn.Module):
         out = []
         out_l = []
         out_ll = []
+        print("frames shape", frames.shape)
 
         # __________________________________________________________________
         # TODO: Modify VFIT architecture below to incorporate time
