@@ -112,7 +112,7 @@ class ChronoSynth(nn.Module):
         betas = self.ModuleBeta(features, (H, W)).view(B, T, -1, H, W)
 
         warp = []
-        for i in range(self.n_inputs):
+        for i in range(self.num_inputs):
             weight = weights[:, i].contiguous()
             alpha = alphas[:, i].contiguous()
             beta = betas[:, i].contiguous()
