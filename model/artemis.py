@@ -91,6 +91,8 @@ class ArTEMIS(nn.Module):
         # Generate multiple output frames
         for i in range(1, num_outputs + 1):
             time_tensor = torch.tensor([i * self.delta_t])
+            print("delta t: ", self.delta_t)
+            print("time tensor", time_tensor)
 
             curr_out_ll = self.predict1(
                 low_scale_features, frames, x2.size()[-2:], time_tensor)
