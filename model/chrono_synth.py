@@ -83,7 +83,7 @@ class ChronoSynth(nn.Module):
         print("Unbound len: ", len(unbound))
 
         print("Unbound shape : ", type(unbound[0]))
-        print("time tensor shape", time_tensor.shape)
+        print("time tensor", time_tensor)
 
         F0, F1, F2, F3 = unbound
 
