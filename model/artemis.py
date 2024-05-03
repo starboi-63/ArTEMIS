@@ -97,6 +97,7 @@ class ArTEMIS(nn.Module):
             # This is the timestep for the current frame 
             time_step = i * self.delta_t
 
+            print("got here?")
             curr_out_ll = self.predict1(
                 low_scale_features, frames, x2.size()[-2:], time_step)
 
