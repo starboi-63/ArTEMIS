@@ -83,7 +83,7 @@ def train(args, epoch):
         # out should be a list of the 3 interpolated frames
         out_ll, out_l, out = model(images)
         # Temporally Flip inputs: going 'forwards' or 'backwards' in a video
-        reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
+        # reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
 
         gt = gt_images.to(device)
 
@@ -93,9 +93,9 @@ def train(args, epoch):
 
         # ********************************************************************************
         # need to also pass in temporally flipped interpolated frames to loss calculations
-        loss0, _ = criterion(out[0], reverse_out[0], gt[0])
-        loss1, _ = criterion(out[1], reverse_out[1], gt[1])
-        loss2, _ = criterion(out[2], reverse_out[2], gt[2])
+        loss0, _ = criterion(out[0], gt[0])#reverse_out[0], gt[0])
+        loss1, _ = criterion(out[1], gt[1])#reverse_out[1], gt[1])
+        loss2, _ = criterion(out[2], gt[2])#reverse_out[2], gt[2])
         overall_loss = (loss0 + loss1 + loss2) / 3
 
         losses['total'].update(overall_loss.item())
