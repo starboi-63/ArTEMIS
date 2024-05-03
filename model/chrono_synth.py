@@ -100,7 +100,7 @@ class ChronoSynth(nn.Module):
 
 
         # occ = torch.cat([F0, F1, F2, F3], 1)
-        occ = torch.cat(torch.unbind(features, 1))
+        occ = torch.cat(torch.unbind(features, 1), 1)
         occ = self.lrelu(self.feature_fuse(occ))
         occlusion = self.moduleOcclusion(occ, (H, W)) 
 
