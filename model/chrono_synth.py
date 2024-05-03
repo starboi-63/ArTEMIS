@@ -83,22 +83,24 @@ class ChronoSynth(nn.Module):
         """
         H, W = output_size
 
-        unbound = torch.unbind(features, 1)
-        print("Unbound len: ", len(unbound))
-
-        print("Unbound shape : ", type(unbound[0]))
+        # unbound = torch.unbind(features, 1)
+        # print("Unbound len: ", len(unbound))
         time_tensor = torch.ones((1, 1, features.shape[3], features.shape[4])).to(features.device) * time_scalar
-        print("features shape", features.shape)
-        print("time tensor shape", time_tensor.shape)
 
-        F0, F1, F2, F3 = unbound
+        # print("Unbound shape : ", type(unbound[0]))
+        # print("features shape", features.shape)
+        # print("time tensor shape", time_tensor.shape)
 
-        F0 = torch.cat([F0, time_tensor + self.delta_t])
-        F1 = torch.cat([F1, time_tensor])
-        F2 = torch.cat([F2, 1 - time_tensor])
-        F3 = torch.cat([F3, 1 - time_tensor + self.delta_t])
+        # F0, F1, F2, F3 = unbound
+        #
+        # F0 = torch.cat([F0, time_tensor + self.delta_t])
+        # F1 = torch.cat([F1, time_tensor])
+        # F2 = torch.cat([F2, 1 - time_tensor])
+        # F3 = torch.cat([F3, 1 - time_tensor + self.delta_t])
 
-        occ = torch.cat([F0, F1, F2, F3], 1)
+
+        # occ = torch.cat([F0, F1, F2, F3], 1)
+        occ = torch.cat(torch.unbind(features, 1))
         occ = self.lrelu(self.feature_fuse(occ))
         occlusion = self.moduleOcclusion(occ, (H, W)) 
 
