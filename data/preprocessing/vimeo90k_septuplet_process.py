@@ -67,13 +67,6 @@ class VimeoSeptuplet(Dataset):
 
         images = [Image.open(pth) for pth in imgpaths]
 
-        # inputs = [int(e)-1 for e in list(self.inputs)]
-        # inputs = inputs[:len(inputs)//2] + [3] + inputs[len(inputs)//2:]
-        # will be using all of the frames in septuplet dataset
-        images = [images[i] for i in range(7)]
-        # use 0-6 instead of selected indicies "inputs" that is comment out
-        imgpaths = [imgpaths[i] for i in range(7)]
-
         # Data augmentation
         if self.training:
             seed = random.randint(0, 2**32)
@@ -93,10 +86,10 @@ class VimeoSeptuplet(Dataset):
             # gt = images[len(images) // 2]
             # images = images[:len(images) // 2] + images[len(images) // 2 + 1:]
 
-            # gt = Ground Truth --> contains ground-truth versions that generated images will be compared with
-            gt = images[2:5]
             # images --> solely the input frames w/o interpolated frames
             images = images[:2] + images[5:]
+            # gt = Ground Truth --> contains ground-truth versions that generated images will be compared with
+            gt = images[2:5]
 
             return images, gt
         else:

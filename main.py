@@ -72,8 +72,8 @@ def train(args, epoch):
     model.train()
     criterion.train()
 
-    # for i, (images, gt_images) in enumerate(tqdm(train_loader)):
-    for i, (images, gt_images, _) in enumerate(tqdm(test_loader)):
+    for i, (images, gt_images) in enumerate(train_loader):
+
 
         # Build input batch
         images = [img_.to(device) for img_ in images]
@@ -86,7 +86,7 @@ def train(args, epoch):
         # Temporally Flip inputs: going 'forwards' or 'backwards' in a video
         # reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
 
-        gt = gt_images.to(device)
+        gt = [gt_image.to(device) for gt_image in gt_images]
 
         # TODO: Adjust loss calculation for 3 frames
         # Option 1: Average 3 losses for each frame
