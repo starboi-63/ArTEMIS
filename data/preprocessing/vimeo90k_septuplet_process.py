@@ -33,20 +33,12 @@ class VimeoSeptuplet(Dataset):
         with open(test_fn, 'r') as f:
             self.testlist = f.read().splitlines()
 
-        # if mode != 'full':
-        #     tmp = []
-        #     for i, value in enumerate(self.testlist):
-        #         if i % 38 == 0: # selecting some random samples
-        #             tmp.append(value)
-        #     self.testlist = tmp
-
         # data augmentation
         if self.training:
             self.transforms = transforms.Compose([
                 transforms.RandomCrop(256),
                 transforms.RandomHorizontalFlip(0.5),
                 transforms.RandomVerticalFlip(0.5),
-                # transforms.ColorJitter(0.05, 0.05, 0.05, 0.05), # commented out in orig??
                 transforms.ToTensor()
             ])
         else:

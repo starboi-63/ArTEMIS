@@ -38,6 +38,7 @@ class GDL(nn.Module):
         # take simple sum?
         return torch.mean(x + y)
     
+
 class MeanShift(nn.Conv2d):
     def __init__(self, rgb_mean, rgb_std, sign=-1):
         super(MeanShift, self).__init__(3, 3, kernel_size=1)
@@ -48,6 +49,7 @@ class MeanShift(nn.Conv2d):
         self.bias.data.div_(std)
         self.requires_grad = False
     
+
 class VGG(nn.Module):
     def __init__(self, loss_type):
         super(VGG, self).__init__()
@@ -109,6 +111,7 @@ class VGG(nn.Module):
 
         return loss
 
+
 # class wrapper for loss functions
 class Loss(nn.modules.loss._Loss):
     def __init__(self, args):
@@ -146,6 +149,19 @@ class Loss(nn.modules.loss._Loss):
         if args.cuda:
             self.loss_module = nn.DataParallel(self.loss_module)
 
+    def loss_criterion(self, interp, gt):
+        avg_loss = 0
+        loss_record = {}
+
+        for loss_info in self.loss:
+            if loss_info['function'] is not None:
+                loss = loss_info['function'](interp, gt)
+                weighted_loss = loss_info['weight'] * loss
+                loss_record[loss_info['type']] = weighted_loss
+                avg_loss += weighted_loss
+
+        return avg_loss, loss_record
+    
     # outputs :: interpolated frames
     # gt :: ground truth frames
     def forward(self, outputs, gt):
@@ -156,17 +172,3 @@ class Loss(nn.modules.loss._Loss):
         loss2, _ = self.loss_criterion(out[2], gt[2])
 
         return (loss0 + loss1 + loss2) / 3
-
-    def loss_criterion(self, interp, gt):
-        avg_loss = 0
-        loss_record = {}
-
-        for loss_info in self.loss:
-            if loss_info['function'] is not None:
-                loss = loss_info['function'](interp, gt)
-                weighted_loss = loss_info['weight'] * loss
-                # type : weighted_loss (str : num) ?
-                loss_record[loss_info['type']] = weighted_loss
-                avg_loss += weighted_loss
-
-        return avg_loss, loss_record
