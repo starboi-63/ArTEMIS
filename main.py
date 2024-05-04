@@ -80,8 +80,11 @@ def train(args, epoch):
     for i, (images, gt_images) in enumerate(train_loader):
         # Build input batch
         images = [img_.to(device) for img_ in images]
+        print("len images", len(images))
+        print("len gt_images", len(gt_images))
 
         # Forward
+        # zero out the gradients for the model
         optimizer.zero_grad()
 
         # out should be a list of the 3 interpolated frames
