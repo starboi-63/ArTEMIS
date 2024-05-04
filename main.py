@@ -1,7 +1,7 @@
 import time
 from tqdm import tqdm
 import config
-import myutils
+import metrics
 import shutil
 import os
 
@@ -12,6 +12,7 @@ import torch.nn as nn
 from model.artemis import ArTEMIS
 from torch.optim import Adamax
 from loss import Loss
+from metrics import eval_metrics
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
 
 
@@ -46,11 +47,12 @@ class ArTEMISModel(L.LightningModule):
         super().__init__()
         # Call this to save command line arguments to checkpoints
         self.save_hyperparameters()
-
+        # Initialize instance variables
         self.args = args
         self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
         self.optimizer = Adamax(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
         self.loss = Loss(args)
+        self.metrics = eval_metrics
 
     def forward(self, images):
         return self.model(images)
@@ -68,9 +70,11 @@ class ArTEMISModel(L.LightningModule):
         images, gt_images = batch
         outputs = self.model(images)
         loss = self.loss(outputs, gt_images)
+        psnr, ssim = self.metrics(outputs, gt_images)
 
         # log metrics for each step
-        self.log('val_loss', loss)
+        self.log('test_loss', loss)
+        
     
     def configure_optimizers(self):
         return self.optimizer
@@ -95,65 +99,19 @@ trainer = L.Trainer()
 
 def train(args, epoch):
 
-    losses, psnrs, ssims = myutils.init_meters(args.loss)
-
-
-
-        losses['total'].update(overall_loss.item())
-
-        overall_loss.backward()
-        optimizer.step()
-
-        print('Train Epoch: {} [{}/{}]\tLoss: {:.6f}\tPSNR: {:.4f}  Lr:{:.6f}'.format(
-            epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
-
         # Calc metrics & print logs
         if i % args.log_iter == 0:
             for out_image, ground_truth_image in zip(out, gt):
-                myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
-            
-            # Write to tensorboard
-            writer.add_scalar('Loss/train', overall_loss.item(), epoch * len(train_loader) + i)
-            writer.add_scalar('PSNR/train', psnrs.avg, epoch * len(train_loader) + i)
-            writer.add_scalar('SSIM/train', ssims.avg, epoch * len(train_loader) + i)
-
+                metrics.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
+    
             # Reset metrics
-            losses, psnrs, ssims = myutils.init_meters(args.loss)
-        
-    # Log model parameters and gradients optionally
-    for name, param in model.named_parameters():
-        writer.add_histogram(name, param, epoch)
-        if param.grad is not None:
-            writer.add_histogram(f'{name}.grad', param.grad, epoch)
+            losses, psnrs, ssims = metrics.init_meters(args.loss)
 
 
 def test(args, epoch):
-    print('Evaluating for epoch = %d' % epoch)
-    losses, psnrs, ssims = myutils.init_meters(args.loss)
-    model.eval()
-    criterion.eval()
-    torch.cuda.empty_cache()
 
-    t = time.time()
-    with torch.no_grad():
-        for i, (images, gt_images, _) in enumerate(tqdm(test_loader)):
+    losses, psnrs, ssims = metrics.init_meters(args.loss)
 
-            images = [img_.to(device) for img_ in images]
-            gt = gt_images.to(device)
-
-            # images is a list of neighboring frames
-            out = model(images)
-
-            # Save loss values
-            # loss, loss_specific = criterion(out, gt)
-
-            # ********************************************************************************
-            # need to also pass in temporally flipped interpolated frames to loss calculations
-            loss0, loss_specific0 = criterion(out[0], gt[0])
-            loss1, loss_specific1 = criterion(out[1], gt[1])
-            loss2, loss_specific2 = criterion(out[2], gt[2])
-            overall_loss = (loss0 + loss1 + loss2) / 3
-            # TODO: not sure if loss_specific is done right...
             loss_specific = {
                 'type': loss_specific0['type'],
                 'weight': loss_specific0['weight'],
@@ -163,23 +121,18 @@ def test(args, epoch):
             # Save loss values
             for k, v in losses.items():
                 if k != 'total':
-                    # TODO: idk what loss_specific does
                     v.update(loss_specific[k].item())
 
             losses['total'].update(overall_loss.item())
 
             # Evaluate metrics
             for out_image, ground_truth_image in zip(out, gt):
-                myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
+                metrics.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
             for out_image, ground_truth_image in zip(out, gt):
-                myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
-
-        # Log metrics
-        writer.add_scalar('Loss/test', losses['total'].avg, epoch)
-        writer.add_scalar('PSNR/test', psnrs.avg, epoch)
-        writer.add_scalar('SSIM/test', ssims.avg, epoch)
+                metrics.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
 
     return losses['total'].avg, psnrs.avg, ssims.avg
+
 
 
 def print_log(epoch, num_epochs, one_epoch_time, oup_pnsr, oup_ssim, Lr):
