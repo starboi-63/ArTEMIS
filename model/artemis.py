@@ -47,7 +47,7 @@ class ArTEMIS(nn.Module):
         num_features_plus_time = num_features_out + 1
 
         self.predict1 = ChronoSynth(
-            num_features_plus_time, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=True)
+            num_inputs, num_features_plus_time, kernel_size, dilation, self.delta_t, apply_softmax=True)
         self.predict2 = ChronoSynth(
             num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
         self.predict3 = ChronoSynth(
