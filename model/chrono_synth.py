@@ -45,7 +45,7 @@ class ChronoSynth(nn.Module):
         def Subnet_occlusion():
             return MySequential(
                 nn.Conv2d(
-                    in_channels=num_features_with_time, out_channels=num_features, kernel_size=3, stride=1, padding=1),
+                    in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
                 nn.LeakyReLU(negative_slope=0.2, inplace=False),
                 nn.Conv2d(
                     in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
