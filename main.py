@@ -77,7 +77,6 @@ def train(args, epoch):
 
         # Build input batch
         images = [img_.to(device) for img_ in images]
-        print("images length", len(images))
 
         # Forward
         optimizer.zero_grad()
@@ -89,7 +88,6 @@ def train(args, epoch):
         # Temporally Flip inputs: going 'forwards' or 'backwards' in a video
         # reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
 
-        print("gt images length", len(gt_images))
         gt = [gt_image.to(device) for gt_image in gt_images]
         print("gt length", len(gt))
 
