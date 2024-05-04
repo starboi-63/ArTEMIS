@@ -15,7 +15,7 @@ class ArTEMIS(nn.Module):
         num_heads = [2, 4, 8, 16]  # For Multi-Head Attention
         self.joinType = joinType
         self.num_inputs = num_inputs
-        # self.num_outputs = num_outputs
+        self.num_outputs = num_outputs
         # delta_t: the perceived timestep between each frame
         # We treat all input and output frames as spaced out evenly
         self.delta_t = 1 / (num_outputs + 1)
@@ -51,7 +51,7 @@ class ArTEMIS(nn.Module):
         self.predict3 = ChronoSynth(
             num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
 
-    def forward(self, frames, num_outputs=1):
+    def forward(self, frames):
         '''
         Performs the forward pass for each output frame needed, a number of times equal to num_outputs.
         Returns the interpolated frames as a list of outputs: [interp1, interp2, interp3, ...]
@@ -89,7 +89,7 @@ class ArTEMIS(nn.Module):
         high_scale_features = self.smooth3(dx1)
 
         # Generate multiple output frames
-        for i in range(1, num_outputs + 1):
+        for i in range(1, self.num_outputs + 1):
             # time_tensor = torch.tensor([i * self.delta_t])
             # time_tensor = torch.ones((1, 1, H, W)) * self.delta_t
             # print("time tensor", time_tensor)
