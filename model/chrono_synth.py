@@ -76,7 +76,7 @@ class ChronoSynth(nn.Module):
             num_features * num_inputs, num_features, kernel_size=1, stride=1, batchnorm=False, bias=True)
         self.lrelu = nn.LeakyReLU(0.2)
 
-    def forward(self, features, frames, output_size, time_scalar):
+    def forward(self, features, frames, output_size, output_frame_time):
         """
         time_scalar: a value 't' from 0 to 1 that represents the arbitrary time between frames
         We create the time scalar from the dimensions of the input feature 
@@ -103,10 +103,31 @@ class ChronoSynth(nn.Module):
         occlusion = self.moduleOcclusion(occ, (H, W)) 
 
         B, C, T, cur_H, cur_W = features.shape
+
+        # Create a tensor which will add 1 extra channel representing the time of context frames
+        time_tensor = torch.ones((B, 1, T. cur_H, cur_W)).to(features.device)
+
+        # Set absolute time differences for left context frames
+        for i in range(T//2):
+            context_frame_time = (i-(T//2-1)) * self.delta_t
+            time_difference = torch.abs(context_frame_time - output_frame_time)
+            time_tensor[:, :, i, :, :] *= time_difference
+
+        # Set absolute time differences for right context frames
+        for i in range(T//2):
+            context_frame_time = (i + 1) * self.delta_t
+            time_difference = torch.abs(context_frame_time - output_frame_time)
+            time_tensor[:, :, i+T//2, :, :] *= time_difference
+
+        print("time tensor shape", time_tensor.shape)
+
+        # Concatenate the time tensor to the channel dimension of the features
+        features = torch.cat([features, time_tensor], 1)
+
+        # Reshape the features so that the synthesis module can solely utilize CxHxW
         features = features.transpose(1, 2).reshape(B*T, C, cur_H, cur_W)
         print("THIS FEATURES SHAPE: ", features.shape)
-        time_tensor = torch.ones((1, 1, features.shape[-2], features.shape[-1])).to(features.device) * time_scalar
-        print("time tensor shape", time_tensor.shape)
+        # Recover the temporal dimension
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
         alphas = self.ModuleAlpha(features, (H, W)).view(B, T, -1, H, W)
         betas = self.ModuleBeta(features, (H, W)).view(B, T, -1, H, W)
