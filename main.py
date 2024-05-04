@@ -53,8 +53,6 @@ class ArTEMISModel(L.LightningModule):
         self.args = args
         self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
         self.optimizer = Adamax(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
-        # TODO: SCHEDULE DA LEARNING RATE 
-        # self.scheduler = ... 
         self.loss = Loss(args)
         self.validation = eval_metrics
 
@@ -90,37 +88,6 @@ class ArTEMISModel(L.LightningModule):
         }
     
 
-# # call after training
-# trainer = L.Trainer()
-# trainer.fit(model=model, train_dataloaders=dataloader)
-
-# # automatically auto-loads the best weights from the previous run
-# trainer.test(dataloaders=test_dataloaders)
-
-# # or call with pretrained model
-# model = LightningTransformer.load_from_checkpoint(PATH)
-# dataset = WikiText2()
-# test_dataloader = DataLoader(dataset)
-# trainer = L.Trainer()
-# trainer.test(model, dataloaders=test_dataloader)
-
-
-lr_schular = [2e-4, 1e-4, 5e-5, 2.5e-5, 5e-6, 1e-6]
-training_schedule = [40, 60, 75, 85, 95, 100]
-
-
-def adjust_learning_rate(optimizer, epoch):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    for i in range(len(training_schedule)):
-        if epoch < training_schedule[i]:
-            current_learning_rate = lr_schular[i]
-            break
-
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = current_learning_rate
-        print('Learning rate sets to {}.'.format(param_group['lr']))
-
-
 """ Entry Point """
 
 
@@ -139,37 +106,6 @@ def main(args):
 
     # Test the model with Lightning
     trainer.test(model, test_loader)
-
-    # ----------------------------
-
-    # best_psnr = 0
-    #
-    # for epoch in range(args.start_epoch, args.max_epoch):
-    #     adjust_learning_rate(optimizer, epoch)
-    #     start_time = time.time()
-    #     train(args, epoch)
-    #
-    #     # save checkpoint
-    #     torch.save({
-    #         'epoch': epoch,
-    #         'state_dict': model.state_dict(),
-    #         'optimizer': optimizer.state_dict(),
-    #         'lr': optimizer.param_groups[-1]['lr']
-    #     }, os.path.join(save_location, 'checkpoint.pth'))
-    #
-    #     test_loss, psnr, ssim = test(args, epoch)
-    #
-    #     # save checkpoint
-    #     is_best = psnr > best_psnr
-    #     best_psnr = max(psnr, best_psnr)
-    #
-    #     if is_best:
-    #         shutil.copyfile(os.path.join(save_location, 'checkpoint.pth'),
-    #                         os.path.join(save_location, 'model_best.pth'))
-    #
-    #     one_epoch_time = time.time() - start_time
-    #     print_log(epoch, args.max_epoch, one_epoch_time, psnr,
-    #               ssim, optimizer.param_groups[-1]['lr'])
 
 
 if __name__ == "__main__":
