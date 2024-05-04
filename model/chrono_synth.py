@@ -104,8 +104,10 @@ class ChronoSynth(nn.Module):
 
         B, C, T, cur_H, cur_W = features.shape
 
+        time_tensor_thickness = 4
+
         # Create a tensor which will add 1 extra channel representing the time of context frames
-        time_tensor = torch.ones((B, 1, T, cur_H, cur_W)).to(features.device)
+        time_tensor = torch.ones((B, time_tensor_thickness, T, cur_H, cur_W)).to(features.device)
 
         # Set absolute time differences for left context frames
         for i in range(T//2):
@@ -125,7 +127,7 @@ class ChronoSynth(nn.Module):
         features = torch.cat([features, time_tensor], 1)
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
-        features = features.transpose(1, 2).reshape(B*T, C + 1, cur_H, cur_W)
+        features = features.transpose(1, 2).reshape(B*T, C + time_tensor_thickness, cur_H, cur_W)
         print("THIS FEATURES SHAPE: ", features.shape)
         # Recover the temporal dimension
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
