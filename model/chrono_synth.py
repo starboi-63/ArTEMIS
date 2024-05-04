@@ -122,15 +122,12 @@ class ChronoSynth(nn.Module):
             time_difference = abs(context_frame_time - output_frame_time)
             time_tensor[:, :, i+T//2, :, :] *= time_difference
 
-        print("time tensor shape", time_tensor.shape)
 
         # Concatenate the time tensor to the channel dimension of the features
         features = torch.cat([features, time_tensor], 1)
-        print("feature shape after cat with time", features.shape)
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
         features = features.transpose(1, 2).reshape(B*T, C + time_tensor_thickness, cur_H, cur_W)
-        print("feature after reshape", features.shape)
         # Recover the temporal dimension
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
         alphas = self.ModuleAlpha(features, (H, W)).view(B, T, -1, H, W)
