@@ -96,6 +96,7 @@ class VimeoSeptuplet(Dataset):
             images = [self.transforms(img_) for img_ in images]
 
             gt = images[2:5]
+            print("inside loader gt length", len(gt))
             images = images[:2] + images[5:]
             # maybe a concern for testing output/seeing image path
             imgpath = '_'.join(imgpath.split('/')[-2:])
