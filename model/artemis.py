@@ -127,8 +127,8 @@ class ArTEMIS(nn.Module):
         # Spawn threads to generate each frame
         for i in range(1, self.num_outputs + 1):
             process = mp.Process(target=generate_single_frame, args=(i, output_queue))
-            processes.append(process)
             process.start()
+            processes.append(process)
 
         # wait for each thread to finish
         for process in processes:
