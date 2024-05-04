@@ -6,3 +6,4 @@ tqdm
 timm
 einops
 tensorboard
+lightning

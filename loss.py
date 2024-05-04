@@ -116,6 +116,7 @@ class Loss(nn.modules.loss._Loss):
 
         self.loss = []
         self.loss_module = nn.ModuleList()
+
         for loss in args.loss.split('+'):
             weight, loss_type = loss.split('*')
             match loss_type:
@@ -145,9 +146,18 @@ class Loss(nn.modules.loss._Loss):
         if args.cuda:
             self.loss_module = nn.DataParallel(self.loss_module)
 
-    # interp :: interpolated frame
-    # gt :: ground truth frame
-    def forward(self, interp, gt):
+    # outputs :: interpolated frames
+    # gt :: ground truth frames
+    def forward(self, outputs, gt):
+        out_ll, out_l, out = outputs
+
+        loss0, _ = self.loss_criterion(out[0], gt[0])
+        loss1, _ = self.loss_criterion(out[1], gt[1])
+        loss2, _ = self.loss_criterion(out[2], gt[2])
+
+        return (loss0 + loss1 + loss2) / 3
+
+    def loss_criterion(self, interp, gt):
         avg_loss = 0
         loss_record = {}
 
