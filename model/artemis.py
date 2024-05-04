@@ -122,13 +122,17 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
+        # share the features across threads 
+        low_scale_features = low_scale_features.share_memory()
+        mid_scale_features = mid_scale_features.share_memory()
+        high_scale_features = high_scale_features.share_memory()
+
         # define a Queue for workers to send their output
         output_queue = mp.Queue()
         # keep track of our process
         processes = []
 
-        # NOTE: detach the frames ?
-
+        # NOTE: we detach the frames tensors, as they are not needed for grad. descent 
         frames = [frame.detach() for frame in frames]
 
         # Spawn threads to generate each frame
