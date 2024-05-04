@@ -108,7 +108,7 @@ class ChronoSynth(nn.Module):
         time_tensor_thickness = 1
 
         # Create a tensor which will add 1 extra channel representing the time of context frames
-        time_tensor = torch.ones((B, time_tensor_thickness, T, cur_H, cur_W))
+        time_tensor = torch.ones((B, time_tensor_thickness, T, cur_H, cur_W)).to_device(features.device)
 
         # Set absolute time differences for left context frames
         for i in range(T//2):

@@ -80,8 +80,15 @@ def train(args, epoch):
     for i, (images, gt_images) in enumerate(train_loader):
         # Build input batch
         images = [img_.to(device) for img_ in images]
+        for image in images:
+            print("image device", image.device)
         print("len images", len(images))
+
         print("len gt_images", len(gt_images))
+
+        gt = [gt_image.to(device) for gt_image in gt_images]
+        for g_image in gt:
+            print("gt image device", g_image.device)
 
         # Forward
         # zero out the gradients for the model
@@ -89,8 +96,6 @@ def train(args, epoch):
 
         # out should be a list of the 3 interpolated frames
         out_ll, out_l, out = model(images)
-
-        gt = [gt_image.to(device) for gt_image in gt_images]
 
         loss0, _ = criterion(out[0], gt[0])#reverse_out[0], gt[0])
         loss1, _ = criterion(out[1], gt[1])#reverse_out[1], gt[1])
