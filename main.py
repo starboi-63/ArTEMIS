@@ -96,13 +96,13 @@ def train(args, epoch):
         overall_loss.backward()
         optimizer.step()
 
+        print('Train Epoch: {} [{}/{}]\tLoss: {:.6f}\tPSNR: {:.4f}  Lr:{:.6f}'.format(
+                epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
+
         # Calc metrics & print logs
         if i % args.log_iter == 0:
             for out_image, ground_truth_image in zip(out, gt):
                 myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
-
-            print('Train Epoch: {} [{}/{}]\tLoss: {:.6f}\tPSNR: {:.4f}  Lr:{:.6f}'.format(
-                epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
             
             # Write to tensorboard
             writer.add_scalar('Loss/train', overall_loss.item(), epoch * len(train_loader) + i)
