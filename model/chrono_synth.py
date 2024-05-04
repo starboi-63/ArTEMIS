@@ -125,7 +125,7 @@ class ChronoSynth(nn.Module):
         features = torch.cat([features, time_tensor], 1)
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
-        features = features.transpose(1, 2).reshape(B*T, C, cur_H, cur_W)
+        features = features.transpose(1, 2).reshape(B*T, C + 1, cur_H, cur_W)
         print("THIS FEATURES SHAPE: ", features.shape)
         # Recover the temporal dimension
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
