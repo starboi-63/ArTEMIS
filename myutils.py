@@ -42,7 +42,6 @@ def eval_metrics(output, ground_truth, psnrs, ssims):
         psnr = calc_psnr(output[b], ground_truth[b])
         psnrs.update(psnr)
 
-        print("output size", output[b].unsqueeze(0).clamp(0,1).size())
         # unsqueeze(0) to add batch dimension
         ssim = calc_ssim(output[b].unsqueeze(0).clamp(0,1), ground_truth[b].unsqueeze(0).clamp(0,1) , val_range=1.)
         ssims.update(ssim)

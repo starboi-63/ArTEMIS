@@ -83,13 +83,11 @@ def train(args, epoch):
 
         # out should be a list of the 3 interpolated frames
         out_ll, out_l, out = model(images)
-        print("out length", len(out))
         
         # Temporally Flip inputs: going 'forwards' or 'backwards' in a video
         # reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
 
         gt = [gt_image.to(device) for gt_image in gt_images]
-        print("gt length", len(gt))
 
         # TODO: Adjust loss calculation for 3 frames
         # Option 1: Average 3 losses for each frame
@@ -168,6 +166,8 @@ def test(args, epoch):
             losses['total'].update(overall_loss.item())
 
             # Evaluate metrics
+            for out_image, ground_truth_image in zip(out, gt):
+                myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
             for out_image, ground_truth_image in zip(out, gt):
                 myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
 
