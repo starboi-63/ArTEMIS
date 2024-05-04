@@ -5,9 +5,9 @@ import myutils
 import shutil
 import os
 
+import lightning as L
 import torch
 import torch.nn as nn
-from torch.utils.tensorboard import SummaryWriter
 
 from model.artemis import ArTEMIS
 from torch.optim import Adamax
@@ -15,37 +15,18 @@ from loss import Loss
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
 
 
-def load_checkpoint(args, model, optimizer, path):
-    print("loading checkpoint %s" % path)
-    checkpoint = torch.load(path)
-    args.start_epoch = checkpoint['epoch'] + 1
-    model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
-    lr = checkpoint.get("lr", args.lr)
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
-##### Parse CmdLine Arguments #####
+# Parse command line arguments
 args, unparsed = config.get_args()
 save_location = os.path.join(args.checkpoint_dir, "checkpoints")
 
+# Initialize CUDA & set random seed
 device = torch.device('cuda' if args.cuda else 'cpu')
-
-if args.cuda:
-    print("Using CUDA on GPU")
-
-
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
-
 torch.manual_seed(args.random_seed)
 
 if args.cuda:
     torch.cuda.manual_seed(args.random_seed)
-
-# Initialize Tensorboard
-writer = SummaryWriter(log_dir=os.path.join(args.checkpoint_dir, 'tensorboard_logs'))
 
 # Initialize DataLoaders
 if args.dataset == "vimeo90K_septuplet":
@@ -59,53 +40,64 @@ if args.dataset == "vimeo90K_septuplet":
 else:
     raise NotImplementedError
 
-print("Building model: %s" % args.model)
 
-# Important parameters: num_inputs=4, num_outputs=3
-# Model can calculate delta_t, the perceived timestep between each frame, including inputs and outputs
-model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
-model = nn.DataParallel(model).to(device)
-total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print('total number of network parameters: {}'.format(total_params))
+class ArTEMISModel(L.LightningModule):
+    def __init__(self, cmd_line_args=args):
+        super().__init__()
+        # Call this to save command line arguments to checkpoints
+        self.save_hyperparameters()
 
-##### Define Loss & Optimizer #####
-criterion = Loss(args)
+        self.args = args
+        self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
+        self.optimizer = Adamax(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
+        self.loss = Loss(args)
 
-# TODO: Different learning rate schemes for different parameters
-optimizer = Adamax(model.parameters(), lr=args.lr,
-                   betas=(args.beta1, args.beta2))
+    def forward(self, images):
+        return self.model(images)
+    
+    def training_step(self, batch, batch_idx):
+        images, gt_images = batch
+        outputs = self(images)
+        loss = self.loss(outputs, gt_images)
 
+        # log metrics for each step
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+    
+    def test_step(self, batch, batch_idx):
+        images, gt_images = batch
+        outputs = self.model(images)
+        loss = self.loss(outputs, gt_images)
+
+        # log metrics for each step
+        self.log('val_loss', loss)
+    
+    def configure_optimizers(self):
+        return self.optimizer
+    
+
+# # call after training
+# trainer = L.Trainer()
+# trainer.fit(model=model, train_dataloaders=dataloader)
+
+# # automatically auto-loads the best weights from the previous run
+# trainer.test(dataloaders=test_dataloaders)
+
+# # or call with pretrained model
+# model = LightningTransformer.load_from_checkpoint(PATH)
+# dataset = WikiText2()
+# test_dataloader = DataLoader(dataset)
+# trainer = L.Trainer()
+# trainer.test(model, dataloaders=test_dataloader)
+
+model = ArTEMISModel(args)
+trainer = L.Trainer()
 
 def train(args, epoch):
-    torch.cuda.empty_cache()
+
     losses, psnrs, ssims = myutils.init_meters(args.loss)
-    model.train()
-    criterion.train()
 
 
-    for i, (images, gt_images) in enumerate(train_loader):
-        # Build input batch
-        
-        t0 = time.time()
-        # Images: For trainnig, this is 4 context images. All of them have the same cuda:0 device
-        images = [img_.to(device) for img_ in images]
-
-        # Ground Truths: For training, this is 3 generated images. All are on cuda:0
-        gt = [gt_image.to(device) for gt_image in gt_images]
-
-        # Forward pass
-        # zero out the gradients for the model
-        optimizer.zero_grad()
-
-        # out should be a list of the 3 interpolated frames
-        out_ll, out_l, out = model(images)
-        t1 = time.time()
-        print("Forward pass time: ", t1-t0)
-
-        loss0, _ = criterion(out[0], gt[0])#reverse_out[0], gt[0])
-        loss1, _ = criterion(out[1], gt[1])#reverse_out[1], gt[1])
-        loss2, _ = criterion(out[2], gt[2])#reverse_out[2], gt[2])
-        overall_loss = (loss0 + loss1 + loss2) / 3
 
         losses['total'].update(overall_loss.item())
 
@@ -113,7 +105,7 @@ def train(args, epoch):
         optimizer.step()
 
         print('Train Epoch: {} [{}/{}]\tLoss: {:.6f}\tPSNR: {:.4f}  Lr:{:.6f}'.format(
-                epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
+            epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
 
         # Calc metrics & print logs
         if i % args.log_iter == 0:
@@ -133,8 +125,6 @@ def train(args, epoch):
         writer.add_histogram(name, param, epoch)
         if param.grad is not None:
             writer.add_histogram(f'{name}.grad', param.grad, epoch)
-
-            
 
 
 def test(args, epoch):
@@ -175,6 +165,7 @@ def test(args, epoch):
                 if k != 'total':
                     # TODO: idk what loss_specific does
                     v.update(loss_specific[k].item())
+
             losses['total'].update(overall_loss.item())
 
             # Evaluate metrics
@@ -258,4 +249,3 @@ def main(args):
 
 if __name__ == "__main__":
     main(args)
-    writer.close()
