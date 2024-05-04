@@ -110,13 +110,13 @@ class ChronoSynth(nn.Module):
         # Set absolute time differences for left context frames
         for i in range(T//2):
             context_frame_time = (i-(T//2-1)) * self.delta_t
-            time_difference = torch.abs(context_frame_time - output_frame_time)
+            time_difference = abs(context_frame_time - output_frame_time)
             time_tensor[:, :, i, :, :] *= time_difference
 
         # Set absolute time differences for right context frames
         for i in range(T//2):
             context_frame_time = (i + 1) * self.delta_t
-            time_difference = torch.abs(context_frame_time - output_frame_time)
+            time_difference = abs(context_frame_time - output_frame_time)
             time_tensor[:, :, i+T//2, :, :] *= time_difference
 
         print("time tensor shape", time_tensor.shape)
