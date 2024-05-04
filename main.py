@@ -117,8 +117,8 @@ def train(args, epoch):
 
         # Calc metrics & print logs
         if i % args.log_iter == 0:
-            for ground_truth_image in gt:
-                myutils.eval_metrics(out, ground_truth_image, psnrs, ssims)
+            for out_image, ground_truth_image in zip(out, gt):
+                myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
 
             print('Train Epoch: {} [{}/{}]\tLoss: {:.6f}\tPSNR: {:.4f}  Lr:{:.6f}'.format(
                 epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
@@ -168,8 +168,8 @@ def test(args, epoch):
             losses['total'].update(overall_loss.item())
 
             # Evaluate metrics
-            for ground_truth_image in gt:
-                myutils.eval_metrics(out, ground_truth_image, psnrs, ssims)
+            for out_image, ground_truth_image in zip(out, gt):
+                myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
 
     return losses['total'].avg, psnrs.avg, ssims.avg
 

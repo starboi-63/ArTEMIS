@@ -99,7 +99,7 @@ def ssim_matlab(img1, img2, window_size=11, window=None, size_average=True, full
         L = val_range
 
     padd = 0
-    (_, _, _, height, width) = img1.size()
+    (_, _, height, width) = img1.size()
     if window is None:
         real_size = min(window_size, height, width)
         window = create_window_3d(real_size, channel=1).to(img1.device)
