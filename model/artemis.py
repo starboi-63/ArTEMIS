@@ -7,6 +7,7 @@ from model.helper_modules import upSplit, joinTensors, Conv_3d
 
 
 class ArTEMIS(nn.Module):
+
     def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1, num_outputs=3): 
         super().__init__()
 
@@ -54,6 +55,33 @@ class ArTEMIS(nn.Module):
         self.predict3 = ChronoSynth(
             num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
 
+    @staticmethod 
+    def generate_single_frame(frames, frame_index, output_queue, 
+                              delta_t, predict1, predict2, predict3,
+                              low_scale_features, mid_scale_features, high_scale_features,
+                              x0, x1, x2):
+        """
+        Use a worker thread to generate A SINGLE frame 
+        frame_index: the index of the frame (0, 1, 2, ...)
+        """
+
+        time_step = frame_index * delta_t
+
+        curr_out_ll = predict1(
+            low_scale_features, frames, x2.size()[-2:], time_step)
+
+        curr_out_l = predict2(
+            mid_scale_features, frames, x1.size()[-2:], time_step)
+        curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()
+                                   [-2:], mode='bilinear') + curr_out_l
+
+        curr_out = predict3(
+            high_scale_features, frames, x0.size()[-2:], time_step)
+        curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()
+                                 [-2:], mode='bilinear') + curr_out
+
+        # queue the three output frames, along with an index for later sorting
+        output_queue.put(frame_index, curr_out_ll, curr_out_l, curr_out)
 
     def forward(self, frames):
         '''
@@ -94,31 +122,6 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
-        def generate_single_frame(frame_index, output_queue):
-            """
-            Use a worker thread to generate A SINGLE frame 
-            i: the index of the frame
-            """
-
-            time_step = frame_index * self.delta_t
-
-            curr_out_ll = self.predict1(
-                low_scale_features, frames, x2.size()[-2:], time_step)
-
-            curr_out_l = self.predict2(
-                mid_scale_features, frames, x1.size()[-2:], time_step)
-            curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()
-                                       [-2:], mode='bilinear') + curr_out_l
-
-            curr_out = self.predict3(
-                high_scale_features, frames, x0.size()[-2:], time_step)
-            curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()
-                                     [-2:], mode='bilinear') + curr_out
-
-            # queue the three output frames, along with an index for later sorting
-            output_queue.put(frame_index, curr_out_ll, curr_out_l, curr_out)
-
-
         # define a Queue for workers to send their output
         output_queue = mp.Queue()
         # keep track of our process
@@ -126,7 +129,12 @@ class ArTEMIS(nn.Module):
 
         # Spawn threads to generate each frame
         for i in range(1, self.num_outputs + 1):
-            process = mp.Process(target=generate_single_frame, args=(i, output_queue))
+            # set up the arguments for the worker. NOTE that these should be mostly pass by reference
+            worker_args = (self.frames, i, output_queue, 
+                           self.delta_t, self.predict1, self.predict2, self.predict3,
+                           low_scale_features, mid_scale_features, high_scale_features,
+                           x0, x1, x2)
+            process = mp.Process(target=ArTEMIS.generate_single_frame, args=worker_args)
             process.start()
             processes.append(process)
 
