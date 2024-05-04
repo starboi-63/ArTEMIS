@@ -86,24 +86,25 @@ class VimeoSeptuplet(Dataset):
             # gt = images[len(images) // 2]
             # images = images[:len(images) // 2] + images[len(images) // 2 + 1:]
 
-            # images --> solely the input frames w/o interpolated frames
-            images = images[:2] + images[5:]
             # gt = Ground Truth --> contains ground-truth versions that generated images will be compared with
-            gt = images[2:5]
-            print("inside loader gt length", len(gt))
-            print("inside loader images length", len(images))
+            ground_truth = images[2:5]
+
+            # images --> solely the input frames w/o interpolated frames
+            context = images[:2] + images[5:]
+            print("inside loader gt length", len(ground_truth))
+            print("inside loader images length", len(context))
 
 
-            return images, gt
+            return context, ground_truth
         else:
             images = [self.transforms(img_) for img_ in images]
 
-            gt = images[2:5]
+            ground_truth = images[2:5]
             images = images[:2] + images[5:]
             # maybe a concern for testing output/seeing image path
             imgpath = '_'.join(imgpath.split('/')[-2:])
 
-            return images, gt, imgpath
+            return images, ground_truth, imgpath
 
     def __len__(self):
         if self.training:
