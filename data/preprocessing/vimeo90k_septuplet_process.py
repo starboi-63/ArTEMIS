@@ -91,6 +91,8 @@ class VimeoSeptuplet(Dataset):
             # gt = Ground Truth --> contains ground-truth versions that generated images will be compared with
             gt = images[2:5]
             print("inside loader gt length", len(gt))
+            print("inside loader images length", len(images))
+
 
             return images, gt
         else:
