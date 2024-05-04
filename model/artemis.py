@@ -130,7 +130,7 @@ class ArTEMIS(nn.Module):
         # Spawn threads to generate each frame
         for i in range(1, self.num_outputs + 1):
             # set up the arguments for the worker. NOTE that these should be mostly pass by reference
-            worker_args = (self.frames, i, output_queue, 
+            worker_args = (frames, i, output_queue, 
                            self.delta_t, self.predict1, self.predict2, self.predict3,
                            low_scale_features, mid_scale_features, high_scale_features,
                            x0, x1, x2)
