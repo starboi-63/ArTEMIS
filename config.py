@@ -51,7 +51,7 @@ misc_arg.add_argument("--exp_name", type=str, default="exp")
 misc_arg.add_argument("--log_iter", type=int, default=100)
 misc_arg.add_argument("--num_gpu", type=int, default=1)
 misc_arg.add_argument("--random_seed", type=int, default=103)
-misc_arg.add_argument("--num_workers", type=int, default=1)
+misc_arg.add_argument("--num_workers", type=int, default=11) # 11 based on warning we got 
 misc_arg.add_argument("--val_freq", type=int, default=1)
 
 
