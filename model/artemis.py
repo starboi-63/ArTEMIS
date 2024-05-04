@@ -123,9 +123,9 @@ class ArTEMIS(nn.Module):
         high_scale_features = self.smooth3(dx1)
 
         # share the features across threads 
-        low_scale_features = low_scale_features.share_memory()
-        mid_scale_features = mid_scale_features.share_memory()
-        high_scale_features = high_scale_features.share_memory()
+        low_scale_features = low_scale_features.share_memory_()
+        mid_scale_features = mid_scale_features.share_memory_()
+        high_scale_features = high_scale_features.share_memory_()
 
         # define a Queue for workers to send their output
         output_queue = mp.Queue()
