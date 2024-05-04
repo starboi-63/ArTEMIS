@@ -83,18 +83,9 @@ def train(args, epoch):
 
         # out should be a list of the 3 interpolated frames
         out_ll, out_l, out = model(images)
-        
-        # Temporally Flip inputs: going 'forwards' or 'backwards' in a video
-        # reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
 
         gt = [gt_image.to(device) for gt_image in gt_images]
 
-        # TODO: Adjust loss calculation for 3 frames
-        # Option 1: Average 3 losses for each frame
-        # Option 2: Have 3 losses for each frame to backprop
-
-        # ********************************************************************************
-        # need to also pass in temporally flipped interpolated frames to loss calculations
         loss0, _ = criterion(out[0], gt[0])#reverse_out[0], gt[0])
         loss1, _ = criterion(out[1], gt[1])#reverse_out[1], gt[1])
         loss2, _ = criterion(out[2], gt[2])#reverse_out[2], gt[2])
@@ -105,14 +96,6 @@ def train(args, epoch):
         overall_loss.backward()
         optimizer.step()
 
-        # loss, _ = criterion(out, gt)
-        # overall_loss = loss
-
-        # losses['total'].update(loss.item())
-
-        # overall_loss.backward()
-        # optimizer.step()
-
         # Calc metrics & print logs
         if i % args.log_iter == 0:
             for out_image, ground_truth_image in zip(out, gt):
@@ -120,9 +103,22 @@ def train(args, epoch):
 
             print('Train Epoch: {} [{}/{}]\tLoss: {:.6f}\tPSNR: {:.4f}  Lr:{:.6f}'.format(
                 epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
+            
+            # Write to tensorboard
+            writer.add_scalar('Loss/train', overall_loss.item(), epoch * len(train_loader) + i)
+            writer.add_scalar('PSNR/train', psnrs.avg, epoch * len(train_loader) + i)
+            writer.add_scalar('SSIM/train', ssims.avg, epoch * len(train_loader) + i)
 
             # Reset metrics
             losses, psnrs, ssims = myutils.init_meters(args.loss)
+        
+    # Log model parameters and gradients optionally
+    for name, param in model.named_parameters():
+        writer.add_histogram(name, param, epoch)
+        if param.grad is not None:
+            writer.add_histogram(f'{name}.grad', param.grad, epoch)
+
+            
 
 
 def test(args, epoch):
@@ -170,6 +166,11 @@ def test(args, epoch):
                 myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
             for out_image, ground_truth_image in zip(out, gt):
                 myutils.eval_metrics(out_image, ground_truth_image, psnrs, ssims)
+
+        # Log metrics
+        writer.add_scalar('Loss/test', losses['total'].avg, epoch)
+        writer.add_scalar('PSNR/test', psnrs.avg, epoch)
+        writer.add_scalar('SSIM/test', ssims.avg, epoch)
 
     return losses['total'].avg, psnrs.avg, ssims.avg
 
@@ -241,3 +242,4 @@ def main(args):
 
 if __name__ == "__main__":
     main(args)
+    writer.close()
