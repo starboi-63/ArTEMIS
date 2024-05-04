@@ -257,7 +257,8 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 
 @cupy._util.memoize(for_each_device=True)
 def cupy_launch(strFunc, strKernel):
-    return cupy.cuda.compile_with_cache(strKernel).get_function(strFunc)
+    module = cupy.RawModule(code = strKernel)
+    return module.get_function(strFunc)
 
 class FunctionSynth(torch.autograd.Function): 
     @staticmethod
