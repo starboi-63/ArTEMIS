@@ -39,7 +39,7 @@ class ArTEMIS(nn.Module):
                 ResBlock(out_channels, kernel_size=3),
             )
 
-        num_features_out = 64
+        num_features_out = 64 + 1 # 64 for the features, 1 for the time tensor
         self.smooth1 = SmoothNet(num_features[1]*growth, num_features_out)
         self.smooth2 = SmoothNet(num_features[2]*growth, num_features_out)
         self.smooth3 = SmoothNet(num_features[3]*growth, num_features_out)
