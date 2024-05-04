@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
-import torch.multiprocessing as mp
-import torch.distributed.rpc as rpc
 from model.sep_sts_encoder import ResBlock, SepSTSEncoder
 from model.chrono_synth import ChronoSynth
 from model.helper_modules import upSplit, joinTensors, Conv_3d
-import lightning as L
 
 
 class ArTEMIS(nn.Module):
@@ -72,7 +69,7 @@ class ArTEMIS(nn.Module):
         curr_out = self.predict3(high_scale_features, frames, x0_size[-2:], time_step)
         curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()[-2:], mode='bilinear') + curr_out
 
-        return frame_index, curr_out_ll, curr_out_l, curr_out
+        return curr_out_ll, curr_out_l, curr_out
     
     
     def forward(self, frames):
@@ -90,10 +87,6 @@ class ArTEMIS(nn.Module):
             3, keepdim=True).mean(4, keepdim=True)
         images = images - mean_
 
-
-        # set the spawn method for multiprocessing
-        mp.set_start_method('spawn', force = True)
-
         # Only need to generate latent representation once
         x0, x1, x2, x3, x4 = self.encoder(images)
 
@@ -110,41 +103,16 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
-        # share the features across threads 
-        low_scale_features = low_scale_features.share_memory_()
-        mid_scale_features = mid_scale_features.share_memory_()
-        high_scale_features = high_scale_features.share_memory_()
-  
-        # Parallel frame generation using RPC
-        futures = []
+        # Define the three output lists for each of the generated frame sizes
+        out_list = []
+        out_l_list = []
+        out_ll_list = []
 
         for i in range(self.num_outputs):
-            worker_index = (i + 1) % rpc.get_world_size()
-
-            if worker_index == rpc.get_worker_info().id:
-                continue # skip the master process
-
-            # Make an RPC call to the worker
-            args = (frames, i, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
-            future = rpc.rpc_async(f"worker{worker_index}", self.generate_single_frame, args=args)
-            futures.append(future)
-
-        # Collect the results from the workers
-        results = [future.wait() for future in futures]
-
-        # Define the three output lists for each of the generated frame sizes
-        out_list = [None]*self.num_outputs
-        out_l_list = [None]*self.num_outputs
-        out_ll_list = [None]*self.num_outputs
-
-        for result in results:
-            frame_index, out_ll, out_l, out = result
-            out_ll_list[frame_index] = out_ll
-            out_l_list[frame_index] = out_l
-            out_list[frame_index] = out
-
-        # NOTE: we detach the frames tensors, as they are not needed for grad. descent 
-        # frames = [frame.detach() for frame in frames]
+            out_ll, out_l, out = self.generate_single_frame(frames, i, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
+            out_ll_list.append(out_ll)
+            out_l_list.append(out_l)
+            out_list.append(out)
 
         if self.training:
             return out_ll_list, out_l_list, out_list
@@ -152,16 +120,3 @@ class ArTEMIS(nn.Module):
             return out_list
 
     
-    @staticmethod
-    def run_worker(rank, world_size):
-        # Initialize the process group
-        rpc.init_rpc(name=f"worker{rank}", rank=rank, world_size=world_size, rpc_backend_options=rpc.TensorPipeRpcBackendOptions())
-
-        # Only proceed if we are not the master process
-        if rank != 0:
-            # Run the worker loop
-            
-            pass
-
-        # Block until all processes are done
-        rpc.shutdown()

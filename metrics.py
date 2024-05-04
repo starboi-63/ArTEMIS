@@ -23,26 +23,27 @@ def eval_metrics(outputs, gt_images):
     """
     Average the metrics across an interpolated frame
 
-    output: interpolated images produced by model
-    gt: ground truth (SINGLE IMAGE). What output will be compared against.
-    psnrs: AverageMeter
-    ssims: AverageMeter
+    outputs: list of interpolated images produced by model
+    gt_images: list ground truth images. What output will be compared against.
 
     PSNR should be calculated for each image, since sum(log) =/= log(sum).
     """
     total_psnr, total_ssim = 0, 0
-    batch_size = gt_images.size(0)
 
-    for b in range(batch_size):
-        for image in 
-        psnr = calc_psnr(output[b], ground_truth[b])
-        total_psnr += psnr
+    batch_size = gt_images[0].size(0)
+    total = 0
 
-        # unsqueeze(0) to add batch dimension
-        ssim = calc_ssim(output[b].unsqueeze(0).clamp(0,1), ground_truth[b].unsqueeze(0).clamp(0,1) , val_range=1.)
-        total_ssim += ssim
+    for output, gt_image in zip(outputs, gt_images):
+        for b in range(batch_size):
+            psnr = calc_psnr(output[b], gt_image[b])
+            total_psnr += psnr
 
-    return total_psnr / num_images, total_ssim / num_images
+            # unsqueeze(0) to add batch dimension
+            ssim = calc_ssim(output[b].unsqueeze(0).clamp(0,1), ground_truth[b].unsqueeze(0).clamp(0,1) , val_range=1.)
+            total_ssim += ssim
+            total += 1
+
+    return total_psnr / total, total_ssim / total
 
 
 def calc_psnr(pred, gt):
