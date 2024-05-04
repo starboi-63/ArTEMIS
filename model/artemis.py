@@ -62,7 +62,7 @@ class ArTEMIS(nn.Module):
                               x0, x1, x2):
         """
         Use a worker thread to generate A SINGLE frame 
-        frame_index: the index of the frame (0, 1, 2, ...)
+        frame_index: the index of the frame, (0, 1, 2, ...)
         """
 
         time_step = frame_index * delta_t
@@ -134,8 +134,11 @@ class ArTEMIS(nn.Module):
                            self.delta_t, self.predict1, self.predict2, self.predict3,
                            low_scale_features, mid_scale_features, high_scale_features,
                            x0, x1, x2)
+            # set up the process to generate a single frame with the provided args
             process = mp.Process(target=ArTEMIS.generate_single_frame, args=worker_args)
+            # spawn the process
             process.start()
+            # add it to the list of processes 
             processes.append(process)
 
         # wait for each thread to finish
