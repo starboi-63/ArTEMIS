@@ -90,13 +90,13 @@ class VimeoSeptuplet(Dataset):
             images = images[:2] + images[5:]
             # gt = Ground Truth --> contains ground-truth versions that generated images will be compared with
             gt = images[2:5]
+            print("inside loader gt length", len(gt))
 
             return images, gt
         else:
             images = [self.transforms(img_) for img_ in images]
 
             gt = images[2:5]
-            print("inside loader gt length", len(gt))
             images = images[:2] + images[5:]
             # maybe a concern for testing output/seeing image path
             imgpath = '_'.join(imgpath.split('/')[-2:])
