@@ -94,7 +94,7 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
-        def generate_single_frame(self, frame_index, output_queue):
+        def generate_single_frame(frame_index, output_queue):
             """
             Use a worker thread to generate A SINGLE frame 
             i: the index of the frame
