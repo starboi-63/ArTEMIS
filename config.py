@@ -30,7 +30,7 @@ learn_arg.add_argument("--loss", type=str, default="1*L1")
 learn_arg.add_argument("--lr", type=float, default=2e-4)
 learn_arg.add_argument("--beta1", type=float, default=0.9)
 learn_arg.add_argument("--beta2", type=float, default=0.999)
-learn_arg.add_argument("--batch_size", type=int, default=4)
+learn_arg.add_argument("--batch_size", type=int, default=8)
 learn_arg.add_argument("--test_batch_size", type=int, default=12)
 learn_arg.add_argument("--start_epoch", type=int, default=0)
 learn_arg.add_argument("--max_epoch", type=int, default=100)
@@ -51,7 +51,7 @@ misc_arg.add_argument("--exp_name", type=str, default="exp")
 misc_arg.add_argument("--log_iter", type=int, default=100)
 misc_arg.add_argument("--num_gpu", type=int, default=1)
 misc_arg.add_argument("--random_seed", type=int, default=103)
-misc_arg.add_argument("--num_workers", type=int, default=11) # 11 based on warning we got 
+misc_arg.add_argument("--num_workers", type=int, default=16)
 misc_arg.add_argument("--val_freq", type=int, default=1)
 
 
