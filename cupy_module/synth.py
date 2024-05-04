@@ -135,7 +135,7 @@ extern "C" __global__ void kernel_Synth_updateGradAlpha(
             int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
             int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
-            betaTrunc = beta - (float)intBeta;
+            float betaTrunc = beta - (float)intBeta;
 
             floatOutput += delta * w * (
                 - VALUE_4(input, intSample, depth, bottom, left)*(1 - betaTrunc) 
@@ -185,7 +185,7 @@ extern "C" __global__ void kernel_Synth_updateGradBeta(
             int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
             int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
-            alphaTrunc = alpha - (float)intAlpha;
+            float alphaTrunc = alpha - (float)intAlpha;
 
             floatOutput += delta * w * (
                 - VALUE_4(input, intSample, depth, bottom, left)*(1 - alphaTrunc) 
