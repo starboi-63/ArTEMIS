@@ -59,7 +59,7 @@ class ArTEMIS(nn.Module):
     def generate_single_frame(frames, frame_index, output_queue, 
                               delta_t, predict1, predict2, predict3,
                               low_scale_features, mid_scale_features, high_scale_features,
-                              x0, x1, x2):
+                              x0_size, x1_size, x2_size):
         """
         Use a worker thread to generate A SINGLE frame 
         frame_index: the index of the frame, (0, 1, 2, ...)
@@ -68,15 +68,15 @@ class ArTEMIS(nn.Module):
         time_step = frame_index * delta_t
 
         curr_out_ll = predict1(
-            low_scale_features, frames, x2.size()[-2:], time_step)
+            low_scale_features, frames, x2_size.size()[-2:], time_step)
 
         curr_out_l = predict2(
-            mid_scale_features, frames, x1.size()[-2:], time_step)
+            mid_scale_features, frames, x1_size.size()[-2:], time_step)
         curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()
                                    [-2:], mode='bilinear') + curr_out_l
 
         curr_out = predict3(
-            high_scale_features, frames, x0.size()[-2:], time_step)
+            high_scale_features, frames, x0_size.size()[-2:], time_step)
         curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()
                                  [-2:], mode='bilinear') + curr_out
 
@@ -127,13 +127,16 @@ class ArTEMIS(nn.Module):
         # keep track of our process
         processes = []
 
+        # NOTE: detach the frames ?
+        frames.detach()
+
         # Spawn threads to generate each frame
         for i in range(1, self.num_outputs + 1):
             # set up the arguments for the worker. NOTE that these should be mostly pass by reference
             worker_args = (frames, i, output_queue, 
                            self.delta_t, self.predict1, self.predict2, self.predict3,
                            low_scale_features, mid_scale_features, high_scale_features,
-                           x0, x1, x2)
+                           x0.size(), x1.size(), x2.size())
             # set up the process to generate a single frame with the provided args
             process = mp.Process(target=ArTEMIS.generate_single_frame, args=worker_args)
             # spawn the process
