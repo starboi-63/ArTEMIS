@@ -107,8 +107,6 @@ def ssim_matlab(img1, img2, window_size=11, window=None, size_average=True, full
 
     img1 = img1.unsqueeze(1)
     img2 = img2.unsqueeze(1)
-    print("img1 size", img1.size())
-    print("img2 size", img2.size())
 
     mu1 = F.conv3d(F.pad(img1, (5, 5, 5, 5, 5, 5), mode='replicate'), window, padding=padd, groups=1)
     mu2 = F.conv3d(F.pad(img2, (5, 5, 5, 5, 5, 5), mode='replicate'), window, padding=padd, groups=1)

@@ -91,8 +91,6 @@ class VimeoSeptuplet(Dataset):
 
             # images --> solely the input frames w/o interpolated frames
             context = images[:2] + images[5:]
-            print("inside loader gt length", len(ground_truth))
-            print("inside loader images length", len(context))
 
 
             return context, ground_truth

@@ -88,8 +88,8 @@ class ChronoSynth(nn.Module):
         # print("Unbound shape : ", type(unbound[0]))
         time_tensor = torch.ones((1, 1, features.shape[3], features.shape[4])).to(features.device) * time_scalar
 
-        print("features shape", features.shape)
-        print("time tensor shape", time_tensor.shape)
+        # print("features shape", features.shape)
+        # print("time tensor shape", time_tensor.shape)
 
         # F0, F1, F2, F3 = unbound
         #
@@ -106,7 +106,7 @@ class ChronoSynth(nn.Module):
 
         B, C, T, cur_H, cur_W = features.shape
         features = features.transpose(1, 2).reshape(B*T, C, cur_H, cur_W)
-        print("THIS FEATURES SHAPE: ", features.shape)
+        # print("THIS FEATURES SHAPE: ", features.shape)
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
         alphas = self.ModuleAlpha(features, (H, W)).view(B, T, -1, H, W)
         betas = self.ModuleBeta(features, (H, W)).view(B, T, -1, H, W)
