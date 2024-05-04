@@ -49,8 +49,13 @@ writer = SummaryWriter(log_dir=os.path.join(args.checkpoint_dir, 'tensorboard_lo
 
 # Initialize DataLoaders
 if args.dataset == "vimeo90K_septuplet":
+    t0 = time.time()
     train_loader = get_loader('train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
+    t1 = time.time()
+    print("Time to load train loader: ", t1-t0)
     test_loader = get_loader('test', args.data_root, args.test_batch_size, shuffle=False, num_workers=args.num_workers)
+    t2 = time.time()
+    print("Time to load test loader", t2-t1)
 else:
     raise NotImplementedError
 
@@ -79,23 +84,22 @@ def train(args, epoch):
 
     for i, (images, gt_images) in enumerate(train_loader):
         # Build input batch
+        
+        t0 = time.time()
+        # Images: For trainnig, this is 4 context images. All of them have the same cuda:0 device
         images = [img_.to(device) for img_ in images]
-        for image in images:
-            print("image device", image.device)
-        print("len images", len(images))
 
-        print("len gt_images", len(gt_images))
-
+        # Ground Truths: For training, this is 3 generated images. All are on cuda:0
         gt = [gt_image.to(device) for gt_image in gt_images]
-        for g_image in gt:
-            print("gt image device", g_image.device)
 
-        # Forward
+        # Forward pass
         # zero out the gradients for the model
         optimizer.zero_grad()
 
         # out should be a list of the 3 interpolated frames
         out_ll, out_l, out = model(images)
+        t1 = time.time()
+        print("Forward pass time: ", t1-t0)
 
         loss0, _ = criterion(out[0], gt[0])#reverse_out[0], gt[0])
         loss1, _ = criterion(out[1], gt[1])#reverse_out[1], gt[1])
