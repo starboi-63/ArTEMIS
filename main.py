@@ -101,7 +101,7 @@ def main(args):
 
     # Train with Lightning 
     model = ArTEMISModel(args)
-    logger = TensorBoardLogger("tensorboard_logs", name="ArTEMIS")
+    logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, default_root_dir=args.checkpoint_dir, logger=logger)
     trainer.fit(model, train_loader)
 
