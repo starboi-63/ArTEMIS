@@ -72,7 +72,8 @@ def train(args, epoch):
     model.train()
     criterion.train()
 
-    for i, (images, gt_images) in enumerate(tqdm(train_loader)):
+    # for i, (images, gt_images) in enumerate(tqdm(train_loader)):
+    for i, (images, gt_images, _) in enumerate(tqdm(test_loader)):
 
         # Build input batch
         images = [img_.to(device) for img_ in images]
