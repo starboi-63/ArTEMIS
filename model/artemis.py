@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.multiprocessing as mp
 from model.sep_sts_encoder import ResBlock, SepSTSEncoder
 from model.chrono_synth import ChronoSynth
 from model.helper_modules import upSplit, joinTensors, Conv_3d
@@ -53,12 +54,14 @@ class ArTEMIS(nn.Module):
         self.predict3 = ChronoSynth(
             num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
 
+
     def forward(self, frames):
         '''
         Performs the forward pass for each output frame needed, a number of times equal to num_outputs.
         Returns the interpolated frames as a list of outputs: [interp1, interp2, interp3, ...]
         frames: input frames
         '''
+
         images = torch.stack(frames, dim=2)
         B, C, T, H, W = images.shape
 
@@ -67,12 +70,13 @@ class ArTEMIS(nn.Module):
             3, keepdim=True).mean(4, keepdim=True)
         images = images - mean_
 
-        out = []
-        out_l = []
-        out_ll = []
+        # define the three output lists for each of the generated frame sizes
+        out_list = [None]*self.num_outputs
+        out_l_list = [None]*self.num_outputs
+        out_ll_list = [None]*self.num_outputs
 
-        # __________________________________________________________________
-        # TODO: Modify VFIT architecture below to incorporate time
+        # set the spawn method for multiprocessing
+        mp.set_start_method('spawn', force = True)
 
         # Only need to generate latent representation once
         x0, x1, x2, x3, x4 = self.encoder(images)
@@ -90,14 +94,13 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
-        # Generate multiple output frames
-        for i in range(1, self.num_outputs + 1):
-            # time_tensor = torch.tensor([i * self.delta_t])
-            # time_tensor = torch.ones((1, 1, H, W)) * self.delta_t
-            # print("time tensor", time_tensor)
-            
-            # This is the timestep for the current frame 
-            time_step = i * self.delta_t
+        def generate_single_frame(frame_index, output_queue):
+            """
+            Use a worker thread to generate A SINGLE frame 
+            i: the index of the frame
+            """
+
+            time_step = frame_index * self.delta_t
 
             curr_out_ll = self.predict1(
                 low_scale_features, frames, x2.size()[-2:], time_step)
@@ -112,11 +115,33 @@ class ArTEMIS(nn.Module):
             curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()
                                      [-2:], mode='bilinear') + curr_out
 
-            out_ll.append(curr_out_ll)
-            out_l.append(curr_out_l)
-            out.append(curr_out)
+            # queue the three output frames, along with an index for later sorting
+            output_queue.put(frame_index, curr_out_ll, curr_out_l, curr_out)
+
+
+        # define a Queue for workers to send their output
+        output_queue = mp.Queue()
+        # keep track of our process
+        processes = []
+
+        # Spawn threads to generate each frame
+        for i in range(1, self.num_outputs + 1):
+            process = mp.Process(target=generate_single_frame, args=(i, output_queue))
+            processes.append(process)
+            process.start()
+
+        # wait for each thread to finish
+        for process in processes:
+            process.join()
+
+        # gather the outputs; sort them by the indices
+        while not output_queue.empty():
+            index, out_ll, out_l, out = output_queue.get()
+            out_ll_list[index] = out_ll 
+            out_l_list[index] = out_l 
+            out_list[index] = out 
 
         if self.training:
-            return out_ll, out_l, out
+            return out_ll_list, out_l_list, out_list
         else:
-            return out
+            return out_list

@@ -82,6 +82,7 @@ def train(args, epoch):
     model.train()
     criterion.train()
 
+
     for i, (images, gt_images) in enumerate(train_loader):
         # Build input batch
         
