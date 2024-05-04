@@ -371,7 +371,7 @@ class FunctionSynth(torch.autograd.Function):
 
             # beta grad
             n = gradOffset_x.nelement()
-            cupy_launch('kernel_AdaCoF_updateGradBeta', cupy_kernel('kernel_AdaCoF_updateGradBeta', intFilterSize, dilation, {
+            cupy_launch('kernel_Synth_updateGradBeta', cupy_kernel('kernel_Synth_updateGradBeta', intFilterSize, dilation, {
                 'gradLoss': gradOutput,
                 'input': input,
                 'weight': weight,
