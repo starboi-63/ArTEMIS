@@ -80,6 +80,10 @@ class ArTEMIS(nn.Module):
         curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()
                                  [-2:], mode='bilinear') + curr_out
 
+        curr_out_ll = curr_out_ll.share_memory_()
+        curr_out_l =  curr_out_l.share_memory_()
+        curr_out = curr_out.share_memory_()
+
         # queue the three output frames, along with an index for later sorting
         output_queue.put(frame_index, curr_out_ll, curr_out_l, curr_out)
 
