@@ -31,6 +31,11 @@ args, unparsed = config.get_args()
 save_location = os.path.join(args.checkpoint_dir, "checkpoints")
 
 device = torch.device('cuda' if args.cuda else 'cpu')
+
+if args.cuda:
+    print("Using CUDA on GPU")
+
+
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 
@@ -73,8 +78,6 @@ def train(args, epoch):
     criterion.train()
 
     for i, (images, gt_images) in enumerate(train_loader):
-
-
         # Build input batch
         images = [img_.to(device) for img_ in images]
 
