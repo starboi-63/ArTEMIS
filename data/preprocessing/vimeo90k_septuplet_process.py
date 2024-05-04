@@ -90,11 +90,12 @@ class VimeoSeptuplet(Dataset):
             images = [self.transforms(img_) for img_ in images]
 
             ground_truth = images[2:5]
-            images = images[:2] + images[5:]
-            # maybe a concern for testing output/seeing image path
-            imgpath = '_'.join(imgpath.split('/')[-2:])
+            context = images[:2] + images[5:]
 
-            return images, ground_truth, imgpath
+            # maybe a concern for testing output/seeing image path
+            # imgpath = '_'.join(imgpath.split('/')[-2:])
+
+            return context, ground_truth
 
     def __len__(self):
         if self.training:
