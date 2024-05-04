@@ -128,7 +128,8 @@ class ArTEMIS(nn.Module):
         processes = []
 
         # NOTE: detach the frames ?
-        frames.detach()
+
+        frames = [frame.detach() for frame in frames]
 
         # Spawn threads to generate each frame
         for i in range(1, self.num_outputs + 1):
