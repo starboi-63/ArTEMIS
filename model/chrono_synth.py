@@ -86,10 +86,8 @@ class ChronoSynth(nn.Module):
         # unbound = torch.unbind(features, 1)
         # print("Unbound len: ", len(unbound))
         # print("Unbound shape : ", type(unbound[0]))
-        time_tensor = torch.ones((1, 1, features.shape[3], features.shape[4])).to(features.device) * time_scalar
 
         # print("features shape", features.shape)
-        # print("time tensor shape", time_tensor.shape)
 
         # F0, F1, F2, F3 = unbound
         #
@@ -98,15 +96,17 @@ class ChronoSynth(nn.Module):
         # F2 = torch.cat([F2, 1 - time_tensor])
         # F3 = torch.cat([F3, 1 - time_tensor + self.delta_t])
 
-
         # occ = torch.cat([F0, F1, F2, F3], 1)
+
         occ = torch.cat(torch.unbind(features, 1), 1)
         occ = self.lrelu(self.feature_fuse(occ))
         occlusion = self.moduleOcclusion(occ, (H, W)) 
 
         B, C, T, cur_H, cur_W = features.shape
         features = features.transpose(1, 2).reshape(B*T, C, cur_H, cur_W)
-        # print("THIS FEATURES SHAPE: ", features.shape)
+        print("THIS FEATURES SHAPE: ", features.shape)
+        time_tensor = torch.ones((1, 1, features.shape[3], features.shape[4])).to(features.device) * time_scalar
+        print("time tensor shape", time_tensor.shape)
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
         alphas = self.ModuleAlpha(features, (H, W)).view(B, T, -1, H, W)
         betas = self.ModuleBeta(features, (H, W)).view(B, T, -1, H, W)
