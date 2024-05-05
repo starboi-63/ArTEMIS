@@ -91,8 +91,8 @@ class ArTEMISModel(L.LightningModule):
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
-            # save_images(outputs, gt_images)
-            # print("saved images on batch ", batch_idx)
+            save_images(outputs, gt_images, batch_index = batch_idx)
+            print("saved images on batch ", batch_idx)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
