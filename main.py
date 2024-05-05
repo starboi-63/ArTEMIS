@@ -98,10 +98,6 @@ class ArTEMISModel(L.LightningModule):
 
 def main(args):
     # load_checkpoint(args, model, optimizer, save_location+'/epoch20/model_best.pth')
-    # test_loss, psnr, ssim = test(args, args.start_epoch)
-    # print(psnr)
-
-    # ----------------------------
 
     # Train with Lightning 
     model = ArTEMISModel(args)
