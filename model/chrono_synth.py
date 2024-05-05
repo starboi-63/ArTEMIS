@@ -9,7 +9,7 @@ class ChronoSynth(nn.Module):
 
         self.delta_t = delta_t
 
-        num_features_with_time = num_features + 1
+        num_features_with_time = num_features + 0
         # Subnetwork to learn vertical and horizontal offsets during convolution
         def Subnet_offset(kernel_size):
             return MySequential(
@@ -105,7 +105,7 @@ class ChronoSynth(nn.Module):
 
         B, C, T, cur_H, cur_W = features.shape
 
-        time_tensor_thickness = 1
+        time_tensor_thickness = 0
 
         # Create a tensor which will add 1 extra channel representing the time of context frames
         time_tensor = torch.ones((B, time_tensor_thickness, T, cur_H, cur_W)).to(features.device)
@@ -124,7 +124,7 @@ class ChronoSynth(nn.Module):
 
 
         # Concatenate the time tensor to the channel dimension of the features
-        features = torch.cat([features, time_tensor], 1)
+        # features = torch.cat([features, time_tensor], 1)
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
         features = features.transpose(1, 2).reshape(B*T, C + time_tensor_thickness, cur_H, cur_W)
