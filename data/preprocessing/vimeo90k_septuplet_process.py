@@ -3,6 +3,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
 import random
+import torch
+import numpy as np
 
 
 class VimeoSeptuplet(Dataset):
@@ -54,9 +56,6 @@ class VimeoSeptuplet(Dataset):
 
         # septuplet indicies range 1-7
         imgpaths = [imgpath + f'/im{i}.png' for i in range(1, 8)]
-
-        # pth_ = imgpaths
-
         images = [Image.open(pth) for pth in imgpaths]
 
         # Data augmentation
@@ -64,7 +63,7 @@ class VimeoSeptuplet(Dataset):
             seed = random.randint(0, 2**32)
             images_ = []
             for img_ in images:
-                random.seed(seed)
+                set_seed(seed)
                 # augmentation, cropping & flipping
                 images_.append(self.transforms(img_))
             images = images_
@@ -75,6 +74,7 @@ class VimeoSeptuplet(Dataset):
             if random.random() >= 0.5:
                 images = images[::-1]
                 imgpaths = imgpaths[::-1]
+                
             # gt = images[len(images) // 2]
             # images = images[:len(images) // 2] + images[len(images) // 2 + 1:]
 
@@ -110,8 +110,13 @@ def get_loader(mode, data_root, batch_size, shuffle, num_workers, test_mode=None
     dataset = VimeoSeptuplet(data_root, is_training=is_training)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
-# if __name__ == "__main__":
-#     path = "" # to fill in towards dataset path (vimeo septuplet), special to local computer/wherever downloaded
-#     dataset = VimeoSepTuplet(path, is_training=True)
-#     print(dataset[0])
-#     dataloader = DataLoader(dataset, batch_size=100, shuffle=False, num_workers=32, pin_memory=True)
+
+def set_seed(seed=None, cuda=True): 
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+    if cuda:
+        torch.cuda.manual_seed_all(seed)
