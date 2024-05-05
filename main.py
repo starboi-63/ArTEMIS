@@ -42,8 +42,10 @@ else:
     raise NotImplementedError
 
 
-# def save_images(outputs, gt_images):
-
+def save_images(outputs, gt_images):
+    """
+    Given some outputs and ground truths, save them all locally 
+    """
 
 
 class ArTEMISModel(L.LightningModule):
@@ -68,6 +70,13 @@ class ArTEMISModel(L.LightningModule):
         outputs = self(images)
         loss = self.loss(outputs, gt_images)
 
+        # every collection of batches, save the outputs
+        if batch_idx % args.log_iter == 0:
+            # save_images(outputs, gt_images)
+            print("a single output frame shape", outputs[0].shape)
+            print("a single reference frame shape ", gt_images[0].shape)
+            print("saved images on batch ", batch_idx)
+ 
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
