@@ -69,11 +69,11 @@ def save_images(outputs, gt_images, batch_index, epoch_index = 0):
 
             # Create directories for each epoch, batch, sample, and frame
             gt_write_path = os.path.join(
-                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", gt_image_name
+                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", gt_image_name
             )
 
             output_write_path = os.path.join(
-                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", output_image_name
+                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", output_image_name
             )
 
             # Create directories if they don't exist
