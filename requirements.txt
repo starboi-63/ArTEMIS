@@ -7,4 +7,5 @@ timm
 einops
 tensorboard
 lightning
-Pillow
+opencv-python
+
