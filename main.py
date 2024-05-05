@@ -75,7 +75,7 @@ class ArTEMISModel(L.LightningModule):
             # save_images(outputs, gt_images)
             print("a single output frame shape", outputs[0].shape)
             print("a single reference frame shape ", gt_images[0].shape)
-            print("saved images on batch ", batch_idx)
+            # print("saved images on batch ", batch_idx)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
