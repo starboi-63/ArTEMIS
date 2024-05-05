@@ -143,7 +143,7 @@ def main(args):
     # load_checkpoint(args, model, optimizer, save_location+'/epoch20/model_best.pth')
 
     # Set the precision for the model to fully utilize the GPU tensor cores
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision('medium')
 
     # Train with Lightning 
     model = ArTEMISModel(args)
