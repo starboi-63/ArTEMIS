@@ -45,7 +45,7 @@ else:
     raise NotImplementedError
 
 
-def save_images(outputs, gt_images, epoc_index = 0, batch_index):
+def save_images(outputs, gt_images, batch_index, epoc_index = 0):
     """
     Given some outputs and ground truths, save them all locally 
     outputs are, like always, a triple of ll, l, and output
