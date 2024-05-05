@@ -59,9 +59,9 @@ def save_images(output, gt_image, batch_index, epoch_index = 0):
     # for frame_index, (gt_image_batch, output_batch) in enumerate(zip(gt_images, output_list)):
 
     # for sample_num, (gt_image, output_image) in enumerate(zip(gt_image_batch, output_batch)):
-    for sample_num, (gt_image, output_image) in enumerate(zip(gt_image, output)):
+    for sample_num, (gt, output_image) in enumerate(zip(gt_image, output_img)):
         # Convert to numpy and scale to 0-255
-        gt_image_color = gt_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
+        gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
         output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
 
         # Convert to BGR for OpenCV
