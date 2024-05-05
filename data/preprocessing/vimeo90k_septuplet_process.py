@@ -81,6 +81,7 @@ class VimeoSeptuplet(Dataset):
             # gt = Ground Truth --> contains ground-truth versions that generated images will be compared with
             # ground_truth = images[2:5]
 
+            # Randomly select a ground truth frame 
             random_index = random.randint(2, 4)
             ground_truth = images[random_index]
 
