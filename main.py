@@ -104,8 +104,11 @@ class ArTEMISModel(L.LightningModule):
     
     def training_step(self, batch, batch_idx):
         images, gt_images = batch
+        print("images shape: ", images.shape)
+        print("gt shape: ", gt_images.shape)
         outputs = self(images)
         loss = self.loss(outputs, gt_images)
+        print("the loss is", loss)
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
