@@ -101,8 +101,7 @@ class ArTEMISModel(L.LightningModule):
         # Initialize instance variables
         self.args = args
         self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
-        LEARNING_RATE = 1e-5
-        self.optimizer = Adamax(self.model.parameters(), lr=LEARNING_RATE, betas=(args.beta1, args.beta2))
+        self.optimizer = Adamax(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
         self.loss = Loss(args)
         self.validation = eval_metrics
 
