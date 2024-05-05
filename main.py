@@ -93,7 +93,8 @@ class ArTEMISModel(L.LightningModule):
         # Initialize instance variables
         self.args = args
         self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
-        self.optimizer = Adamax(self.model.parameters(), lr=2e-4, betas=(args.beta1, args.beta2))
+        LEARNING_RATE = 1e-5
+        self.optimizer = Adamax(self.model.parameters(), lr=LEARNING_RATE, betas=(args.beta1, args.beta2))
         self.loss = Loss(args)
         self.validation = eval_metrics
 
@@ -104,13 +105,13 @@ class ArTEMISModel(L.LightningModule):
     
     def training_step(self, batch, batch_idx):
         images, gt_images = batch
-        print("images len: ", len(images))
-        print("gt len: ", len(gt_images))
-        print("images shape: ", images[0].shape)
-        print("gt shape: ", gt_images[0].shape)
+        # print("images len: ", len(images))
+        # print("gt len: ", len(gt_images))
+        # print("images shape: ", images[0].shape)
+        # print("gt shape: ", gt_images[0].shape)
         outputs = self(images)
         loss = self.loss(outputs, gt_images)
-        print("manually printing loss ", loss)
+        # print("manually printing loss ", loss)
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
