@@ -69,11 +69,12 @@ class ArTEMISModel(L.LightningModule):
         images, gt_images = batch
         outputs = self(images)
         loss = self.loss(outputs, gt_images)
+        _, _, output_images = outputs
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
             # save_images(outputs, gt_images)
-            print("a single output frame shape", outputs[0].shape)
+            print("a single output frame shape", output_images[0].shape)
             print("a single reference frame shape ", gt_images[0].shape)
             # print("saved images on batch ", batch_idx)
  
