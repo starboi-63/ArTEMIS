@@ -80,6 +80,8 @@ def save_images(outputs, gt_images, batch_index, epoch_index = 0):
             cv2.imwrite(gt_write_path, gt_image_result)
             cv2.imwrite(output_write_path, output_image_result)
 
+            print(f"Saved images to {gt_write_path} and {output_write_path}")
+
 
 class ArTEMISModel(L.LightningModule):
     def __init__(self, cmd_line_args=args):
