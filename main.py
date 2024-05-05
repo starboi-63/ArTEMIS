@@ -93,7 +93,7 @@ class ArTEMISModel(L.LightningModule):
         # Initialize instance variables
         self.args = args
         self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
-        self.optimizer = Adamax(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
+        self.optimizer = Adamax(self.model.parameters(), lr=2e-4, betas=(args.beta1, args.beta2))
         self.loss = Loss(args)
         self.validation = eval_metrics
 
@@ -130,9 +130,9 @@ class ArTEMISModel(L.LightningModule):
         training_schedule = [40, 60, 75, 85, 95, 100]
         return {
             "optimizer": self.optimizer,
-            "lr_scheduler": {
-                "scheduler": MultiStepLR(optimizer = self.optimizer, milestones = training_schedule, gamma = 0.5),
-            }
+            # "lr_scheduler": {
+            #     "scheduler": MultiStepLR(optimizer = self.optimizer, milestones = training_schedule, gamma = 0.5),
+            # }
         }
     
 
