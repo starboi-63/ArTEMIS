@@ -45,44 +45,52 @@ else:
     raise NotImplementedError
 
 
-def save_images(outputs, gt_images, batch_index, epoch_index = 0):
+# def save_images(outputs, gt_images, batch_index, epoch_index = 0):
+def save_images(output, gt_image, batch_index, epoch_index = 0):
     """
     Given some outputs and ground truths, save them all locally 
     outputs are, like always, a triple of ll, l, and output
 
     """
-    _, _, output_list = outputs
+    # _, _, output_list = outputs
 
-    for frame_index, (gt_image_batch, output_batch) in enumerate(zip(gt_images, output_list)):
-        for sample_num, (gt_image, output_image) in enumerate(zip(gt_image_batch, output_batch)):
-            # Convert to numpy and scale to 0-255
-            gt_image_color = gt_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
-            output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
+    _, _, output_img = output
 
-            # Convert to BGR for OpenCV
-            gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-            output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+    # for frame_index, (gt_image_batch, output_batch) in enumerate(zip(gt_images, output_list)):
 
-            # Create image names
-            gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
-            output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
+    # for sample_num, (gt_image, output_image) in enumerate(zip(gt_image_batch, output_batch)):
+    for sample_num, (gt_image, output_image) in enumerate(zip(gt_image, output)):
+        # Convert to numpy and scale to 0-255
+        gt_image_color = gt_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
+        output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
 
-            # Create directories for each epoch, batch, sample, and frame
-            gt_write_path = os.path.join(
-                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", gt_image_name
-            )
+        # Convert to BGR for OpenCV
+        gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+        output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
 
-            output_write_path = os.path.join(
-                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", output_image_name
-            )
+        # Create image names
+        # gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
+        # output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
 
-            # Create directories if they don't exist
-            os.makedirs(os.path.dirname(gt_write_path), exist_ok=True)
-            os.makedirs(os.path.dirname(output_write_path), exist_ok=True)
+        gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
+        output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
 
-            # Write images to disk
-            cv2.imwrite(gt_write_path, gt_image_result)
-            cv2.imwrite(output_write_path, output_image_result)
+        # Create directories for each epoch, batch, sample, and frame
+        gt_write_path = os.path.join(
+            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", gt_image_name
+        )
+
+        output_write_path = os.path.join(
+            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", output_image_name
+        )
+
+        # Create directories if they don't exist
+        os.makedirs(os.path.dirname(gt_write_path), exist_ok=True)
+        os.makedirs(os.path.dirname(output_write_path), exist_ok=True)
+
+        # Write images to disk
+        cv2.imwrite(gt_write_path, gt_image_result)
+        cv2.imwrite(output_write_path, output_image_result)
 
 
 class ArTEMISModel(L.LightningModule):
@@ -104,18 +112,23 @@ class ArTEMISModel(L.LightningModule):
 
     
     def training_step(self, batch, batch_idx):
-        images, gt_images = batch
-        # print("images len: ", len(images))
-        # print("gt len: ", len(gt_images))
-        # print("images shape: ", images[0].shape)
-        # print("gt shape: ", gt_images[0].shape)
-        outputs = self(images)
-        loss = self.loss(outputs, gt_images)
-        # print("manually printing loss ", loss)
+        # images, gt_images = batch
+        # NOTE: GT_IMAGE IS JUST A SINGLE IMAGE 
+        images, gt_image = batch
+        # NOTE: JUST GENERATING A SINGLE OUTPUT
+        
+        # outputs = self(images)
+
+        output = self(images)
+        # loss = self.loss(outputs, gt_images)
+
+        loss = self.loss(output, gt_image)
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
-            save_images(outputs, gt_images, batch_index = batch_idx)
+            # save_images(outputs, gt_images, batch_index = batch_idx)
+
+             save_images(output, gt_image, batch_index = batch_idx)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
