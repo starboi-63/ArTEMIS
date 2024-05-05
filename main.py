@@ -67,8 +67,8 @@ def save_images(outputs, gt_images, batch_index, epoch_index = 0):
             gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
             output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
 
-            gt_write_path = os.path.join("out", f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", gt_image_name)
-            output_write_path = os.path.join("out", f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", output_image_name)
+            gt_write_path = os.path.join(args.out_dir, "out", f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", gt_image_name)
+            output_write_path = os.path.join(args.out_dir, "out", f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", output_image_name)
 
             cv2.imwrite(gt_write_path, gt_image_result)
             cv2.imwrite(output_write_path, output_image_result)
