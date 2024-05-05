@@ -2,6 +2,9 @@ import time
 import config
 import os
 
+import  cv2
+import numpy as np
+
 # from PIL import Image
 import lightning as L
 import torch
@@ -42,10 +45,26 @@ else:
     raise NotImplementedError
 
 
-def save_images(outputs, gt_images):
+def save_images(outputs, gt_images, epoc_index = 0, batch_index):
     """
     Given some outputs and ground truths, save them all locally 
+    outputs are, like always, a triple of ll, l, and output
+
     """
+    _, _, output_list = outputs
+    for frame_index, (gt_image_batch, output_batch) in enumerate(zip(gt_images, output_list)):
+        print("output image shape", output_batch.shape)
+        print("ground_truth image shape", gt_image_batch.shape)
+        for batch_num, (gt_image, output_image) in enumerate(zip(gt_image_batch, output_batch)):
+            gt_image_color = gt_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).numpy() * 255.0
+            output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).numpy() * 255.0
+            gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+            output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+
+            gt_write_path = "out/"+str(epoc_index)+"/"+str(batch_index)+"gt_batch_"+str(batch_num)+"_"+str(frame_index)
+            output_write_path = "out/"+str(epoc_index)+"/"+str(batch_index)+"out_batch_"+str(batch_num)+"_"+str(frame_index)
+            cv2.imwrite(gt_write_path, gt_image_result)
+            cv2.imwrite(output_write_path, output_image_result)
 
 
 class ArTEMISModel(L.LightningModule):
@@ -69,13 +88,10 @@ class ArTEMISModel(L.LightningModule):
         images, gt_images = batch
         outputs = self(images)
         loss = self.loss(outputs, gt_images)
-        _, _, output_images = outputs
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
             # save_images(outputs, gt_images)
-            print("a single output frame shape", output_images[0].shape)
-            print("a single reference frame shape ", gt_images[0].shape)
             # print("saved images on batch ", batch_idx)
  
         # log metrics for each step
