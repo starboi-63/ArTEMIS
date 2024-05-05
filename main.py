@@ -76,11 +76,13 @@ def save_images(outputs, gt_images, batch_index, epoch_index = 0):
                 args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", output_image_name
             )
 
+            # Create directories if they don't exist
+            os.makedirs(os.path.dirname(gt_write_path), exist_ok=True)
+            os.makedirs(os.path.dirname(output_write_path), exist_ok=True)
+
             # Write images to disk
             cv2.imwrite(gt_write_path, gt_image_result)
             cv2.imwrite(output_write_path, output_image_result)
-
-            print(f"Saved images to {gt_write_path} and {output_write_path}")
 
 
 class ArTEMISModel(L.LightningModule):
@@ -108,7 +110,6 @@ class ArTEMISModel(L.LightningModule):
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
             save_images(outputs, gt_images, batch_index = batch_idx)
-            print("saved images on batch ", batch_idx)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -142,7 +143,7 @@ def main(args):
     # load_checkpoint(args, model, optimizer, save_location+'/epoch20/model_best.pth')
 
     # Train with Lightning 
-    model = ArTEMISModel(args)
+    model = ArTEMISModel(args).half()
     logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, default_root_dir=args.checkpoint_dir, logger=logger)
     trainer.fit(model, train_loader)
