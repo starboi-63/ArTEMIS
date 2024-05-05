@@ -20,8 +20,5 @@ class Loss(nn.modules.loss._Loss):
         outputs = torch.cat(out_list, dim=0)            # (B*3, C, H, W)
         ground_truths = torch.cat(ground_truths, dim=0) # (B*3, C, H, W)
 
-        print("outputs shape (after cat): ", outputs.shape)
-        print("ground_truths shape (after cat): ", ground_truths.shape)
-
         return self.loss_function(outputs, ground_truths)
 
