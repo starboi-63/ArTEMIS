@@ -104,19 +104,28 @@ class ArTEMIS(nn.Module):
         high_scale_features = self.smooth3(dx1)
 
         # Define the three output lists for each of the generated frame sizes
-        out_list = []
-        out_l_list = []
-        out_ll_list = []
+        # out_list = []
+        # out_l_list = []
+        # out_ll_list = []
 
-        for i in range(self.num_outputs):
-            out_ll, out_l, out = self.generate_single_frame(frames, i, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
-            out_ll_list.append(out_ll)
-            out_l_list.append(out_l)
-            out_list.append(out)
+        # for i in range(self.num_outputs):
+        #     out_ll, out_l, out = self.generate_single_frame(frames, i, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
+        #     out_ll_list.append(out_ll)
+        #     out_l_list.append(out_l)
+        #     out_list.append(out)
+
+        # out_ll, out_l, out = self.generate_single_frame(frames, i, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
+
+        out_ll, out_l, out = self.generate_single_frame(frames, 1, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
+
+        # if self.training:
+        #     return out_ll_list, out_l_list, out_list
+        # else:
+        #     return out_list
 
         if self.training:
-            return out_ll_list, out_l_list, out_list
+            return out_ll, out_l, out
         else:
-            return out_list
+            return out
 
     
