@@ -58,8 +58,10 @@ class ArTEMISModel(L.LightningModule):
         self.loss = Loss(args)
         self.validation = eval_metrics
 
+
     def forward(self, images):
         return self.model(images)
+
     
     def training_step(self, batch, batch_idx):
         images, gt_images = batch
@@ -69,6 +71,7 @@ class ArTEMISModel(L.LightningModule):
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
+
     
     def test_step(self, batch, batch_idx):
         images, gt_images = batch

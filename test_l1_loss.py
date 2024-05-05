@@ -7,6 +7,7 @@ class Loss(nn.modules.loss._Loss):
         super(Loss, self).__init__()
         # just use simple L1 loss. I don't think we need CUDA for this
         self.loss_function = nn.L1Loss()
+        self.device = torch.device('cuda' if args.cuda else 'cpu')
 
     def forward(self, outputs, ground_truths):
         """
@@ -19,8 +20,9 @@ class Loss(nn.modules.loss._Loss):
         total_loss = 0
 
         for out_image, gt_image in zip(out_list, ground_truths):
+            out_image = out_image.to(self.device)
+            gt_image = gt_image.to(self.device)
             total_loss += self.loss_function(out_image, gt_image)
-
 
         return total_loss / len(outputs)
 
