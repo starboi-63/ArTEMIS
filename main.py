@@ -54,22 +54,29 @@ def save_images(outputs, gt_images, batch_index, epoch_index = 0):
     _, _, output_list = outputs
 
     for frame_index, (gt_image_batch, output_batch) in enumerate(zip(gt_images, output_list)):
-        print("output image shape", output_batch.shape)
-        print("ground_truth image shape", gt_image_batch.shape)
-
         for sample_num, (gt_image, output_image) in enumerate(zip(gt_image_batch, output_batch)):
+            # Convert to numpy and scale to 0-255
             gt_image_color = gt_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).numpy() * 255.0
             output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).numpy() * 255.0
 
+            # Convert to BGR for OpenCV
             gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
             output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
 
+            # Create image names
             gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
             output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
 
-            gt_write_path = os.path.join(args.out_dir, "out", f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", gt_image_name)
-            output_write_path = os.path.join(args.out_dir, "out", f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", output_image_name)
+            # Create directories for each epoch, batch, sample, and frame
+            gt_write_path = os.path.join(
+                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", gt_image_name
+            )
 
+            output_write_path = os.path.join(
+                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", f"frame_{frame_index}", output_image_name
+            )
+
+            # Write images to disk
             cv2.imwrite(gt_write_path, gt_image_result)
             cv2.imwrite(output_write_path, output_image_result)
 
