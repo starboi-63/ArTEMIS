@@ -17,8 +17,14 @@ class Loss(nn.modules.loss._Loss):
         # out_list and ground_truths are [(B,C,H,W), (B,C,H,W), (B,C,H,W)]
         _, _, out_list = outputs 
 
+        print("outputs shape: List of", out_list[0].shape)
+        print("ground_truths shape: List of", ground_truths[0].shape)
+
         outputs = torch.cat(out_list, dim=0)            # (B*3, C, H, W)
         ground_truths = torch.cat(ground_truths, dim=0) # (B*3, C, H, W)
+
+        print("outputs shape (after cat): ", outputs.shape)
+        print("ground_truths shape (after cat): ", ground_truths.shape)
 
         return self.loss_function(outputs, ground_truths)
 
