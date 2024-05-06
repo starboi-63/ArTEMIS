@@ -19,7 +19,7 @@
 from pytorch_msssim import ssim_matlab as calc_ssim
 import math
 
-def eval_metrics(outputs, gt_images):
+def eval_metrics(output, gt_image):
     """
     Average the metrics across an interpolated frame
 
@@ -30,20 +30,17 @@ def eval_metrics(outputs, gt_images):
     """
     total_psnr, total_ssim = 0, 0
 
-    batch_size = gt_images[0].size(0)
-    total = 0
+    batch_size = gt_image.size(0)
 
-    for output, gt_image in zip(outputs, gt_images):
-        for b in range(batch_size):
-            psnr = calc_psnr(output[b], gt_image[b])
-            total_psnr += psnr
+    for b in range(batch_size):
+        psnr = calc_psnr(output[b], gt_image[b])
+        total_psnr += psnr
 
-            # unsqueeze(0) to add batch dimension
-            ssim = calc_ssim(output[b].unsqueeze(0).clamp(0,1), gt_image[b].unsqueeze(0).clamp(0,1) , val_range=1.)
-            total_ssim += ssim
-            total += 1
+        # unsqueeze(0) to add batch dimension
+        ssim = calc_ssim(output[b].unsqueeze(0).clamp(0,1), gt_image[b].unsqueeze(0).clamp(0,1) , val_range=1.)
+        total_ssim += ssim
 
-    return total_psnr / total, total_ssim / total
+    return total_psnr / batch_size, total_ssim / batch_size
 
 
 def calc_psnr(pred, gt):
