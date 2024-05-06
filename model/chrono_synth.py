@@ -97,11 +97,14 @@ class ChronoSynth(nn.Module):
 
         print("time tensor after", time_tensor)
 
-        # Concatenate the time tensor to the channel dimension of the features
-        features = torch.cat([features, time_tensor], 1)
-
         occ = torch.cat(torch.unbind(features, 1), 1)
         occ = self.lrelu(self.feature_fuse(occ))
+        print("occy way dimensions after unbinding")
+
+        # Concatenate the time tensor to the channel dimension of the features
+        features = torch.cat([features, time_tensor], 1)
+        occ = torch.cat([occ, time_tensor], 1)
+
         occlusion = self.moduleOcclusion(occ, (H, W)) 
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
