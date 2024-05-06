@@ -84,21 +84,6 @@ class ChronoSynth(nn.Module):
         """
         H, W = output_size
 
-        # unbound = torch.unbind(features, 1)
-        # print("Unbound len: ", len(unbound))
-        # print("Unbound shape : ", type(unbound[0]))
-
-        # print("features shape", features.shape)
-
-        # F0, F1, F2, F3 = unbound
-        #
-        # F0 = torch.cat([F0, time_tensor + self.delta_t])
-        # F1 = torch.cat([F1, time_tensor])
-        # F2 = torch.cat([F2, 1 - time_tensor])
-        # F3 = torch.cat([F3, 1 - time_tensor + self.delta_t])
-
-        # occ = torch.cat([F0, F1, F2, F3], 1)
-
         occ = torch.cat(torch.unbind(features, 1), 1)
         occ = self.lrelu(self.feature_fuse(occ))
         occlusion = self.moduleOcclusion(occ, (H, W)) 
@@ -108,19 +93,19 @@ class ChronoSynth(nn.Module):
         time_tensor_thickness = 0
 
         # Create a tensor which will add 1 extra channel representing the time of context frames
-        time_tensor = torch.ones((B, time_tensor_thickness, T, cur_H, cur_W)).to(features.device)
+        # time_tensor = torch.ones((B, time_tensor_thickness, T, cur_H, cur_W)).to(features.device)
 
         # Set absolute time differences for left context frames
-        for i in range(T//2):
-            context_frame_time = (i-(T//2-1)) * self.delta_t
-            time_difference = abs(context_frame_time - output_frame_time)
-            time_tensor[:, :, i, :, :] *= time_difference
+        # for i in range(T//2):
+        #     context_frame_time = (i-(T//2-1)) * self.delta_t
+        #     time_difference = abs(context_frame_time - output_frame_time)
+        #     time_tensor[:, :, i, :, :] *= time_difference
 
-        # Set absolute time differences for right context frames
-        for i in range(T//2):
-            context_frame_time = (i + 1) * self.delta_t
-            time_difference = abs(context_frame_time - output_frame_time)
-            time_tensor[:, :, i+T//2, :, :] *= time_difference
+        # # Set absolute time differences for right context frames
+        # for i in range(T//2):
+        #     context_frame_time = (i + 1) * self.delta_t
+        #     time_difference = abs(context_frame_time - output_frame_time)
+        #     time_tensor[:, :, i+T//2, :, :] *= time_difference
 
 
         # Concatenate the time tensor to the channel dimension of the features

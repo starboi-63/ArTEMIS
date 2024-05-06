@@ -52,13 +52,8 @@ def save_images(output, gt_image, batch_index, epoch_index = 0):
     outputs are, like always, a triple of ll, l, and output
 
     """
-    # _, _, output_list = outputs
-
     _, _, output_img = output
 
-    # for frame_index, (gt_image_batch, output_batch) in enumerate(zip(gt_images, output_list)):
-
-    # for sample_num, (gt_image, output_image) in enumerate(zip(gt_image_batch, output_batch)):
     for sample_num, (gt, output_image) in enumerate(zip(gt_image, output_img)):
         # Convert to numpy and scale to 0-255
         gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
@@ -67,10 +62,6 @@ def save_images(output, gt_image, batch_index, epoch_index = 0):
         # Convert to BGR for OpenCV
         gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
         output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-
-        # Create image names
-        # gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
-        # output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{frame_index}.png"
 
         gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
         output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
@@ -111,22 +102,12 @@ class ArTEMISModel(L.LightningModule):
 
     
     def training_step(self, batch, batch_idx):
-        # images, gt_images = batch
-        # NOTE: GT_IMAGE IS JUST A SINGLE IMAGE 
         images, gt_image = batch
-        # NOTE: JUST GENERATING A SINGLE OUTPUT
-        
-        # outputs = self(images)
-
         output = self(images)
-        # loss = self.loss(outputs, gt_images)
-
         loss = self.loss(output, gt_image)
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
-            # save_images(outputs, gt_images, batch_index = batch_idx)
-
              save_images(output, gt_image, batch_index = batch_idx)
  
         # log metrics for each step
@@ -158,8 +139,6 @@ class ArTEMISModel(L.LightningModule):
 
 
 def main(args):
-    # load_checkpoint(args, model, optimizer, save_location+'/epoch20/model_best.pth')
-
     # Set the precision for the model to fully utilize the GPU tensor cores
     torch.set_float32_matmul_precision('medium')
 
