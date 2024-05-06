@@ -128,7 +128,7 @@ kernel_Synth_updateGradWeight = '''
 '''
 
 kernel_Synth_updateGradAlpha = '''
-    extern "C" __global__ void kernel_AdaCoF_updateGradAlpha(
+    extern "C" __global__ void kernel_Synth_updateGradAlpha(
         const int n,
         const float* gradLoss,
         const float* input,
