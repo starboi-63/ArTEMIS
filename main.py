@@ -51,7 +51,7 @@ def save_image(image, name, path):
     image = image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
     # Convert to BGR for OpenCV
     image = cv2.cvtColor(image.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-    # Create directory if they don't exist
+    # Create directory if it doesn't exist
     os.makedirs(path, exist_ok=True)
     # Write image to disk
     cv2.imwrite(os.path.join(path, name), image)
