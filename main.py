@@ -1,232 +1,152 @@
-from model import ArTEMIS
-from torch.optim import Adamax
 import time
-
-import torch
-from tqdm import tqdm
-
 import config
-import myutils
-from loss import Loss
-import shutil
 import os
 
+import cv2
+import numpy as np
 
-def load_checkpoint(args, model, optimizer, path):
-    print("loading checkpoint %s" % path)
-    checkpoint = torch.load(path)
-    args.start_epoch = checkpoint['epoch'] + 1
-    model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
-    lr = checkpoint.get("lr", args.lr)
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
+# from PIL import Image
+import lightning as L
+import torch
+
+from lightning.pytorch.loggers import TensorBoardLogger
+from model.artemis import ArTEMIS
+from torch.optim import Adamax
+from torch.optim.lr_scheduler import MultiStepLR
+# from loss import Loss
+from loss import Loss
+from metrics import eval_metrics
+from data.preprocessing.vimeo90k_septuplet_process import get_loader
 
 
-##### Parse CmdLine Arguments #####
+# Parse command line arguments
 args, unparsed = config.get_args()
-cwd = os.getcwd()
-print(args)
+save_location = os.path.join(args.checkpoint_dir, "checkpoints")
 
-save_loc = os.path.join(args.checkpoint_dir, "checkpoints")
-
+# Initialize CUDA & set random seed
 device = torch.device('cuda' if args.cuda else 'cpu')
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
-
 torch.manual_seed(args.random_seed)
+
 if args.cuda:
     torch.cuda.manual_seed(args.random_seed)
 
+# Initialize DataLoaders
 if args.dataset == "vimeo90K_septuplet":
-    from dataset.vimeo90k_septuplet_process import get_loader
-    train_loader = get_loader(
-        'train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
-    test_loader = get_loader('test', args.data_root, args.test_batch_size,
-                             shuffle=False, num_workers=args.num_workers)
+    t0 = time.time()
+    train_loader = get_loader('train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
+    t1 = time.time()
+    test_loader = get_loader('test', args.data_root, args.test_batch_size, shuffle=False, num_workers=args.num_workers)
+    t2 = time.time()
 else:
     raise NotImplementedError
 
-print("Building model: %s" % args.model)
-# number of outputs = 1 implicitly
-# Important parameters: num_inputs=4, num_outputs=3
-# Model can calculate delta_t, the perceived timestep between each frame, including inputs and outputs
-model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType,
-                kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
-model = torch.nn.DataParallel(model).to(device)
-total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print('total number of network parameters: {}'.format(total_params))
 
-##### Define Loss & Optimizer #####
-criterion = Loss(args)
+def save_images(output, gt_image, batch_index, epoch_index):
+    """
+    Given some outputs and ground truths, save them all locally 
+    outputs are, like always, a triple of ll, l, and output
 
-# TODO: Different learning rate schemes for different parameters
-optimizer = Adamax(model.parameters(), lr=args.lr,
-                   betas=(args.beta1, args.beta2))
+    """
+    _, _, output_img = output
 
+    for sample_num, (gt, output_image) in enumerate(zip(gt_image, output_img)):
+        # Convert to numpy and scale to 0-255
+        gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
+        output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
 
-def train(args, epoch):
-    torch.cuda.empty_cache()
-    losses, psnrs, ssims = myutils.init_meters(args.loss)
-    model.train()
-    criterion.train()
+        # Convert to BGR for OpenCV
+        gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+        output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
 
-    for i, (images, gt_images) in enumerate(train_loader):
+        gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
+        output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
 
-        # Build input batch
-        images = [img_.to(device) for img_ in images]
+        # Create directories for each epoch, batch, sample, and frame
+        gt_write_path = os.path.join(
+            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", gt_image_name
+        )
 
-        # Forward
-        optimizer.zero_grad()
+        output_write_path = os.path.join(
+            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", output_image_name
+        )
 
-        # out should be a list of the 3 interpolated frames
-        out_ll, out_l, out = model(images)
-        # Temporally Flip inputs: going 'forwards' or 'backwards' in a video
-        # reverse_out_ll, reverse_out_l, reverse_out = model(images[::-1])
+        # Create directories if they don't exist
+        os.makedirs(os.path.dirname(gt_write_path), exist_ok=True)
+        os.makedirs(os.path.dirname(output_write_path), exist_ok=True)
 
-        gt = gt_images.to(device)
-
-        # TODO: Adjust loss calculation for 3 frames
-        # Option 1: Average 3 losses for each frame
-        # Option 2: Have 3 losses for each frame to backprop
-
-        # ********************************************************************************
-        # need to also pass in temporally flipped interpolated frames to loss calculations
-        loss0, _ = criterion(out[0], gt[0])#reverse_out[0], gt[0])
-        loss1, _ = criterion(out[1], gt[1])#reverse_out[1], gt[1])
-        loss2, _ = criterion(out[2], gt[2])#reverse_out[2], gt[2])
-        overall_loss = (loss0 + loss1 + loss2) / 3
-
-        losses['total'].update(overall_loss.item())
-
-        overall_loss.backward()
-        optimizer.step()
-
-        # loss, _ = criterion(out, gt)
-        # overall_loss = loss
-
-        # losses['total'].update(loss.item())
-
-        # overall_loss.backward()
-        # optimizer.step()
-
-        # Calc metrics & print logs
-        if i % args.log_iter == 0:
-            myutils.eval_metrics(out, gt, psnrs, ssims)
-
-            print('Train Epoch: {} [{}/{}]\tLoss: {:.6f}\tPSNR: {:.4f}  Lr:{:.6f}'.format(
-                epoch, i, len(train_loader), losses['total'].avg, psnrs.avg, optimizer.param_groups[0]['lr'], flush=True))
-
-            # Reset metrics
-            losses, psnrs, ssims = myutils.init_meters(args.loss)
+        # Write images to disk
+        cv2.imwrite(gt_write_path, gt_image_result)
+        cv2.imwrite(output_write_path, output_image_result)
 
 
-def test(args, epoch):
-    print('Evaluating for epoch = %d' % epoch)
-    losses, psnrs, ssims = myutils.init_meters(args.loss)
-    model.eval()
-    criterion.eval()
-    torch.cuda.empty_cache()
+class ArTEMISModel(L.LightningModule):
+    def __init__(self, cmd_line_args=args):
+        super().__init__()
+        # Call this to save command line arguments to checkpoints
+        self.save_hyperparameters()
+        # Initialize instance variables
+        self.args = args
+        self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation)
+        self.optimizer = Adamax(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
+        self.loss = Loss(args)
+        self.validation = eval_metrics
 
-    t = time.time()
-    with torch.no_grad():
-        for i, (images, gt_images, _) in enumerate(tqdm(test_loader)):
 
-            images = [img_.to(device) for img_ in images]
-            gt = gt_images.to(device)
+    def forward(self, images, output_frame_times):
+        return self.model(images, output_frame_times)
 
-            # images is a list of neighboring frames
-            out = model(images)
+    
+    def training_step(self, batch, batch_idx):
+        images, gt_image, output_frame_times = batch
+        output = self(images, output_frame_times)
+        loss = self.loss(output, gt_image)
 
-            # Save loss values
-            # loss, loss_specific = criterion(out, gt)
+        # every collection of batches, save the outputs
+        if batch_idx % args.log_iter == 0:
+            save_images(output, gt_image, batch_index = batch_idx, epoch_index = self.current_epoch)
+ 
+        # log metrics for each step
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
-            # ********************************************************************************
-            # need to also pass in temporally flipped interpolated frames to loss calculations
-            loss0, loss_specific0 = criterion(out[0], gt[0])
-            loss1, loss_specific1 = criterion(out[1], gt[1])
-            loss2, loss_specific2 = criterion(out[2], gt[2])
-            overall_loss = (loss0 + loss1 + loss2) / 3
-            # TODO: not sure if loss_specific is done right...
-            loss_specific = {
-                'type': loss_specific0['type'],
-                'weight': loss_specific0['weight'],
-                'function': loss_specific0['function']
+    
+    def test_step(self, batch, batch_idx):
+        images, gt_image, output_frame_times = batch
+        output = self.model(images, output_frame_times)
+        loss = self.loss(output, gt_image)
+        psnr, ssim = self.validation(output, gt_image)
+
+        # log metrics for each step
+        self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
+        
+    
+    def configure_optimizers(self):
+        training_schedule = [40, 60, 75, 85, 95, 100]
+        return {
+            "optimizer": self.optimizer,
+            "lr_scheduler": {
+                "scheduler": MultiStepLR(optimizer = self.optimizer, milestones = training_schedule, gamma = 0.5),
             }
-
-            # Save loss values
-            for k, v in losses.items():
-                if k != 'total':
-                    # TODO: idk what loss_specific does
-                    v.update(loss_specific[k].item())
-            losses['total'].update(overall_loss.item())
-
-            # Evaluate metrics
-            myutils.eval_metrics(out, gt, psnrs, ssims)
-
-    return losses['total'].avg, psnrs.avg, ssims.avg
-
-
-def print_log(epoch, num_epochs, one_epoch_time, oup_pnsr, oup_ssim, Lr):
-    print('({0:.0f}s) Epoch [{1}/{2}], Val_PSNR:{3:.2f}, Val_SSIM:{4:.4f}'
-          .format(one_epoch_time, epoch, num_epochs, oup_pnsr, oup_ssim))
-    # write training log
-    with open('./training_log/train_log.txt', 'a') as f:
-        print(
-            'Date: {0}s, Time_Cost: {1:.0f}s, Epoch: [{2}/{3}], Val_PSNR:{4:.2f}, Val_SSIM:{5:.4f}, Lr:{6}'
-            .format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                    one_epoch_time, epoch, num_epochs, oup_pnsr, oup_ssim, Lr), file=f)
-
-
-lr_schular = [2e-4, 1e-4, 5e-5, 2.5e-5, 5e-6, 1e-6]
-training_schedule = [40, 60, 75, 85, 95, 100]
-
-
-def adjust_learning_rate(optimizer, epoch):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    for i in range(len(training_schedule)):
-        if epoch < training_schedule[i]:
-            current_learning_rate = lr_schular[i]
-            break
-
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = current_learning_rate
-        print('Learning rate sets to {}.'.format(param_group['lr']))
-
+        }
+    
 
 """ Entry Point """
 
 
 def main(args):
-    # load_checkpoint(args, model, optimizer, save_loc+'/epoch20/model_best.pth')
-    # test_loss, psnr, ssim = test(args, args.start_epoch)
-    # print(psnr)
+    # Set the precision for the model to fully utilize the GPU tensor cores
+    torch.set_float32_matmul_precision('medium')
 
-    best_psnr = 0
-    for epoch in range(args.start_epoch, args.max_epoch):
-        adjust_learning_rate(optimizer, epoch)
-        start_time = time.time()
-        train(args, epoch)
+    # Train with Lightning 
+    model = ArTEMISModel(args)
+    logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
+    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, default_root_dir=args.checkpoint_dir, logger=logger)
+    trainer.fit(model, train_loader)
 
-        torch.save({
-            'epoch': epoch,
-            'state_dict': model.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            'lr': optimizer.param_groups[-1]['lr']
-        }, os.path.join(save_loc, 'checkpoint.pth'))
-
-        test_loss, psnr, ssim = test(args, epoch)
-
-        # save checkpoint
-        is_best = psnr > best_psnr
-        best_psnr = max(psnr, best_psnr)
-        if is_best:
-            shutil.copyfile(os.path.join(save_loc, 'checkpoint.pth'),
-                            os.path.join(save_loc, 'model_best.pth'))
-
-        one_epoch_time = time.time() - start_time
-        print_log(epoch, args.max_epoch, one_epoch_time, psnr,
-                  ssim, optimizer.param_groups[-1]['lr'])
+    # Test the model with Lightning
+    trainer.test(model, test_loader)
 
 
 if __name__ == "__main__":

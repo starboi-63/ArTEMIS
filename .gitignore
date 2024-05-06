@@ -1,5 +1,6 @@
 # data
-data/data_paths/*
+data/sources/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -129,6 +130,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+artemis-env/
 
 # Spyder project settings
 .spyderproject

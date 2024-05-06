@@ -1,17 +1,14 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
-from timm.models.layers import DropPath, trunc_normal_
-
+from timm.models.layers import trunc_normal_
 from functools import reduce, lru_cache
 from operator import mul
 from einops import rearrange
-from einops.layers.torch import Rearrange
+
 
 class Mlp(nn.Module):
     """ Multilayer perceptron."""
-
     def __init__(self, in_features, hidden_features=None, out_features=None, activation=nn.GELU):
         super().__init__()
         out_features = out_features or in_features
@@ -175,7 +172,7 @@ class WindowAttention3D(nn.Module):
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
 
         # Layer to project the output of the multi-head self attention back to the original dimension
-        self.proj = nn.Linear(dim, dim)
+        self.project = nn.Linear(dim, dim)
 
         # Initialize the relative position bias table with a truncated normal distribution
         trunc_normal_(self.relative_position_bias_table, std=.02)
@@ -219,9 +216,10 @@ class WindowAttention3D(nn.Module):
         else:
             attn = self.softmax(attn)
 
-        x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
-        x = self.proj(x)
+        x = (attn @ values).transpose(1, 2).reshape(B_, N, C)
+        x = self.project(x)
         return x
+
 
 class SepSTSBlock(nn.Module):
     """ A basic Sep-STS Block.
@@ -234,12 +232,12 @@ class SepSTSBlock(nn.Module):
         mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
         qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
+        activation (nn.Module, optional): Activation layer. Default: nn.GELU
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
     """
     def __init__(self, dim, num_heads, depth_window_size=(1, 8, 8), shift_size=(0, 0, 0),
                  point_window_size=(4, 1, 1), mlp_ratio=4., qkv_bias=True, qk_scale=None,
-                 act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+                 activation=nn.GELU, norm_layer=nn.LayerNorm):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -261,7 +259,7 @@ class SepSTSBlock(nn.Module):
 
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, activation=activation)
 
     def forward_part1(self, x, mask_matrix):
         B, D, H, W, C = x.shape
@@ -273,7 +271,7 @@ class SepSTSBlock(nn.Module):
         pad_d1 = (window_size[0] - D % window_size[0]) % window_size[0]
         pad_b = (window_size[1] - H % window_size[1]) % window_size[1]
         pad_r = (window_size[2] - W % window_size[2]) % window_size[2]
-        x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b, pad_d0, pad_d1))
+        x = torch.nn.functional.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b, pad_d0, pad_d1))
         _, Dp, Hp, Wp, _ = x.shape
         # cyclic shift
         if any(i > 0 for i in shift_size):
@@ -302,7 +300,7 @@ class SepSTSBlock(nn.Module):
         x_windows = window_partition(x, window_size)
         attn_windows = self.point_attn(x_windows, mask=None)
         attn_windows = attn_windows.view(-1, *(window_size + (C,)))
-        x = window_partition(attn_windows, window_size, B, D, H, W)
+        x = undo_window_partition(attn_windows, window_size, B, D, H, W)
 
         return x
 
@@ -323,6 +321,7 @@ class SepSTSBlock(nn.Module):
 
         return x
 
+
 # cache each stage results
 @lru_cache()
 def compute_mask(D, H, W, window_size, shift_size, device):
@@ -338,6 +337,7 @@ def compute_mask(D, H, W, window_size, shift_size, device):
     attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
     attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
     return attn_mask
+
 
 class SepSTSBasicLayer(nn.Module):
     """ A Sep-STS layer for one stage.
