@@ -90,9 +90,12 @@ class ChronoSynth(nn.Module):
         # Example: goes from -1, 0, 1, 2 for T = 4
         start, end = -T//2 + 1, T//2 + 1
         print("type of start", type(start))
+        print("type of output frame time", output_frame_time)
         for context_frame_time in range(start, end):
             time_difference = abs(context_frame_time - output_frame_time)
             print("type of time diff", type(time_difference))
+            print("time tensor slice shape", time_tensor[:, :, context_frame_time - start, :, :].shape)
+            print("time diff shape", time_difference.shape)
             time_tensor[:, :, context_frame_time - start, :, :] *= time_difference
 
         # Concatenate the time tensor to the channel dimension of the features
