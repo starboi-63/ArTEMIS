@@ -151,8 +151,7 @@ class ArTEMISModel(L.LightningModule):
 
 """ Entry Point """
 
-
-def main(args):
+def test_and_train(args):
     torch.set_float32_matmul_precision("medium")
     logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
     model = ArTEMISModel(args)
@@ -166,6 +165,23 @@ def main(args):
 
     # Test the model with Lightning
     trainer.test(model, test_loader)
+
+
+def single_interpolation(args):
+    """
+    Run an interpolation on a single input of 4 frames: 
+    Produces a single output frame at an arbitrary time step
+    """
+    t = args.time_step
+    input_image_paths = 
+
+
+
+def main(args):
+    if args.eval:
+        single_interpolation(args)
+    else:
+        test_and_train(args)
 
 
 if __name__ == "__main__":
