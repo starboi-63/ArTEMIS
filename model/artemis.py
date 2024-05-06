@@ -6,7 +6,7 @@ from model.helper_modules import upSplit, joinTensors, Conv_3d
 
 
 class ArTEMIS(nn.Module):
-    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1, num_outputs=3): 
+    def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
         super().__init__()
 
         num_features = [192, 128, 64, 32]
@@ -15,10 +15,6 @@ class ArTEMIS(nn.Module):
         num_heads = [2, 4, 8, 16]  # For Multi-Head Attention
         self.joinType = joinType
         self.num_inputs = num_inputs
-        self.num_outputs = num_outputs
-        # delta_t: the perceived timestep between each frame
-        # We treat all input and output frames as spaced out evenly
-        self.delta_t = 1 / (num_outputs + 1)
 
         growth = 2 if joinType == "concat" else 1
         self.lrelu = nn.LeakyReLU(0.2, inplace=True)
@@ -47,18 +43,19 @@ class ArTEMIS(nn.Module):
         num_features_plus_time = num_features_out + 1
 
         self.predict1 = ChronoSynth(
-            num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=True)
+            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=True)
         self.predict2 = ChronoSynth(
-            num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
+            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
         self.predict3 = ChronoSynth(
-            num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
+            num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
         
     
-    def forward(self, frames):
+    def forward(self, frames, output_frame_time):
         '''
         Performs the forward pass for each output frame needed, a number of times equal to num_outputs.
         Returns the interpolated frames as a list of outputs: [interp1, interp2, interp3, ...]
         frames: input frames
+        output_frame_time: arbitrary 't' from 0 to 1
         '''
 
         images = torch.stack(frames, dim=2)
@@ -85,16 +82,12 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
-        # NOTE: PASSING IN 1 FOR FRAME INDEX BEC IT DOESNT MATTER LOL
+        curr_out_ll = self.predict1(low_scale_features, frames, x2.size()[-2:], output_frame_time)
 
-        time_step = 1 * self.delta_t
-
-        curr_out_ll = self.predict1(low_scale_features, frames, x2.size()[-2:], time_step)
-
-        curr_out_l = self.predict2(mid_scale_features, frames, x1.size()[-2:], time_step)
+        curr_out_l = self.predict2(mid_scale_features, frames, x1.size()[-2:], output_frame_time)
         curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()[-2:], mode='bilinear') + curr_out_l
 
-        curr_out = self.predict3(high_scale_features, frames, x0.size()[-2:], time_step)
+        curr_out = self.predict3(high_scale_features, frames, x0.size()[-2:], output_frame_time)
         curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()[-2:], mode='bilinear') + curr_out
 
         return curr_out_ll, curr_out_l, curr_out

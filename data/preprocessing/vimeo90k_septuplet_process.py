@@ -82,8 +82,16 @@ class VimeoSeptuplet(Dataset):
             # images --> solely the input frames w/o interpolated frames
             context = images[:2] + images[5:]
 
+            match random_index:
+                case 2:
+                    output_frame_time = 0.25
+                case 3:
+                    output_frame_time = 0.5
+                case 4:
+                    output_frame_time = 0.75
 
-            return context, ground_truth
+            return context, ground_truth, output_frame_time
+
         else:
             images = [self.transforms(img_) for img_ in images]
 
@@ -92,7 +100,15 @@ class VimeoSeptuplet(Dataset):
             ground_truth = images[random_index]
             context = images[:2] + images[5:]
 
-            return context, ground_truth
+            match random_index:
+                case 2:
+                    output_frame_time = 0.25
+                case 3:
+                    output_frame_time = 0.5
+                case 4:
+                    output_frame_time = 0.75
+
+            return context, ground_truth, output_frame_time
 
     def __len__(self):
         if self.training:
