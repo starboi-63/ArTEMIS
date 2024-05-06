@@ -4,10 +4,8 @@ from model.helper_modules import MySequential, Conv_2d
 
 
 class ChronoSynth(nn.Module):
-    def __init__(self, num_inputs, num_features, kernel_size, dilation, delta_t, apply_softmax=True):
+    def __init__(self, num_inputs, num_features, kernel_size, dilation, apply_softmax=True):
         super(ChronoSynth, self).__init__()
-
-        self.delta_t = delta_t
 
         num_features_with_time = num_features + 1
         # Subnetwork to learn vertical and horizontal offsets during convolution
