@@ -5,7 +5,6 @@ import math
 
 kernel_AdaCoF_updateOutput = '''
 extern "C" __global__ void kernel_AdaCoF_updateOutput(
-        const int n,
         const float* input,
         const float* weight, 
         const float* offset_y,
@@ -346,8 +345,8 @@ class FunctionSynth(torch.autograd.Function):
             cupy_launch('kernel_AdaCoF_updateOutput', cupy_kernel('kernel_AdaCoF_updateOutput', intFilterSize, dilation, {
                 'input': input,
                 'weight': weight,
-                'offset_i': offset_i,
-                'offset_j': offset_j,
+                'offset_y': offset_i,
+                'offset_x': offset_j,
                 'output': output
             }))(
                 grid=tuple([int((n + 512 - 1) / 512), 1, 1]),
