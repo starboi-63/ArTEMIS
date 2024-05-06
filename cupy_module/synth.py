@@ -29,29 +29,10 @@ kernel_Synth_updateOutput = '''
                     int intAlpha    = (int)alpha;
                     int intBeta     = (int)beta;
 
-                    int bottom = y + row*DILATION + intAlpha;
-                    if(bottom < 0)
-                        bottom = 0;
-                    if(bottom > SIZE_2(input) - 1)
-                        bottom = SIZE_2(input) - 1;
-
-                    int left = x + col*DILATION + intBeta;
-                    if(left < 0)
-                        left = 0;
-                    if(left > SIZE_3(input) - 1)
-                        left = SIZE_3(input) - 1;
-
-                    int top = y + row*DILATION + intAlpha + 1;
-                    if(top < 0)
-                        top = 0;
-                    if(top > SIZE_2(input) - 1)
-                        top = SIZE_2(input) - 1;
-
-                    int right = x + col*DILATION + intBeta + 1;
-                    if(right < 0)
-                        right = 0;
-                    if(right > SIZE_3(input) - 1)
-                        right = SIZE_3(input) - 1;
+                    int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
+                    int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
+                    int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
+                    int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
                     float alphaTrunc = alpha - (float)intAlpha;
                     float betaTrunc = beta - (float)intBeta;
@@ -295,6 +276,22 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
         strIndex = ['((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg]) + ')' for intArg in range(intArgs)]
 
         strKernel = strKernel.replace(objMatch.group(0), strTensor + '[' + str.join('+', strIndex) + ']')
+
+    # purpose: integer clamp a given value to the range [0, upperBound]
+    while True: 
+        objMatch = re.search('(CLAMP)(\()([^\)]*)(\))', strKernel)
+
+        if objMatch is None: 
+            break
+
+        strArgs = objMatch.group(3).split(',')
+        
+        assert (len(strArgs) == 3)
+
+        strValue, strLowerBound, strUpperBound = strArgs
+        strReplacement = f"min(max({strValue}, {strLowerBound}), {strUpperBound})"
+
+        strKernel = strKernel.replace(objMatch.group(0), strReplacement)
 
     # setting macros
     strKernel = strKernel.replace('F_SIZE', str(intFilterSize))
