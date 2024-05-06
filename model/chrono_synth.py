@@ -9,7 +9,7 @@ class ChronoSynth(nn.Module):
 
         self.delta_t = delta_t
 
-        num_features_with_time = num_features + 0
+        num_features_with_time = num_features + 1
         # Subnetwork to learn vertical and horizontal offsets during convolution
         def Subnet_offset(kernel_size):
             return MySequential(
@@ -45,7 +45,7 @@ class ChronoSynth(nn.Module):
         def Subnet_occlusion():
             return MySequential(
                 nn.Conv2d(
-                    in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
+                    in_channels=num_features_with_time, out_channels=num_features, kernel_size=3, stride=1, padding=1),
                 nn.LeakyReLU(negative_slope=0.2, inplace=False),
                 nn.Conv2d(
                     in_channels=num_features, out_channels=num_features, kernel_size=3, stride=1, padding=1),
@@ -90,29 +90,26 @@ class ChronoSynth(nn.Module):
 
         B, C, T, cur_H, cur_W = features.shape
 
-        time_tensor_thickness = 0
-
         # Create a tensor which will add 1 extra channel representing the time of context frames
-        # time_tensor = torch.ones((B, time_tensor_thickness, T, cur_H, cur_W)).to(features.device)
+        time_tensor = torch.ones((B, 1, T, cur_H, cur_W)).to(features.device)
 
         # Set absolute time differences for left context frames
-        # for i in range(T//2):
-        #     context_frame_time = (i-(T//2-1)) * self.delta_t
-        #     time_difference = abs(context_frame_time - output_frame_time)
-        #     time_tensor[:, :, i, :, :] *= time_difference
+        for i in range(T//2):
+            context_frame_time = (i-(T//2-1)) * self.delta_t
+            time_difference = abs(context_frame_time - output_frame_time)
+            time_tensor[:, :, i, :, :] *= time_difference
 
         # # Set absolute time differences for right context frames
-        # for i in range(T//2):
-        #     context_frame_time = (i + 1) * self.delta_t
-        #     time_difference = abs(context_frame_time - output_frame_time)
-        #     time_tensor[:, :, i+T//2, :, :] *= time_difference
-
+        for i in range(T//2):
+            context_frame_time = (i + 1) * self.delta_t
+            time_difference = abs(context_frame_time - output_frame_time)
+            time_tensor[:, :, i+T//2, :, :] *= time_difference
 
         # Concatenate the time tensor to the channel dimension of the features
-        # features = torch.cat([features, time_tensor], 1)
+        features = torch.cat([features, time_tensor], 1)
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
-        features = features.transpose(1, 2).reshape(B*T, C + time_tensor_thickness, cur_H, cur_W)
+        features = features.transpose(1, 2).reshape(B*T, C + 1, cur_H, cur_W)
         # Recover the temporal dimension
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
         alphas = self.ModuleAlpha(features, (H, W)).view(B, T, -1, H, W)
