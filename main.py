@@ -84,7 +84,7 @@ def save_images(output, gt_image, batch_index, context_frames, epoch_index):
         # Save the context frames
         for i, context in enumerate(contexts):
             context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
-            context_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", context_image_name)
+            context_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
             save_image(context, context_image_name, context_write_path)
 
 
