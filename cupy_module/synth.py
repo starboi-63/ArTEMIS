@@ -1,5 +1,5 @@
 import cupy
-import torch 
+import torch
 import re
 import math
 
@@ -7,12 +7,12 @@ kernel_Synth_updateOutput = '''
 extern "C" __global__ void kernel_Synth_updateOutput(
         const int n,
         const float* input,
-        const float* weight, 
+        const float* weight,
         const float* offset_y,
         const float* offset_x,
         float* output
-) 
-{ 
+)
+{
     for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
         float dblOutput = 0.0;
 
@@ -20,7 +20,7 @@ extern "C" __global__ void kernel_Synth_updateOutput(
         const int intDepth  = ( intIndex / SIZE_3(output) / SIZE_2(output)                  ) % SIZE_1(output);
         const int y         = ( intIndex / SIZE_3(output)                                   ) % SIZE_2(output);
         const int x         = ( intIndex                                                    ) % SIZE_3(output);
-    
+
         for (int row = 0; row < F_SIZE; row += 1) {
             for (int col = 0; col < F_SIZE; col += 1) {
                 float w         = VALUE_4(weight, intSample, row*F_SIZE+col, y, x);
@@ -29,25 +29,44 @@ extern "C" __global__ void kernel_Synth_updateOutput(
                 int intAlpha    = (int)alpha;
                 int intBeta     = (int)beta;
 
-                int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
-                int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
-                int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
-                int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
+                int bottom = y + row*DILATION + intAlpha;
+                if(bottom < 0)
+                    bottom = 0;
+                if(bottom > SIZE_2(input) - 1)
+                    bottom = SIZE_2(input) - 1;
+
+                int left = x + col*DILATION + intBeta;
+                if(left < 0)
+                    left = 0;
+                if(left > SIZE_3(input) - 1)
+                    left = SIZE_3(input) - 1;
+
+                int top = y + row*DILATION + intAlpha + 1;
+                if(top < 0)
+                    top = 0;
+                if(top > SIZE_2(input) - 1)
+                    top = SIZE_2(input) - 1;
+
+                int right = x + col*DILATION + intBeta + 1;
+                if(right < 0)
+                    right = 0;
+                if(right > SIZE_3(input) - 1)
+                    right = SIZE_3(input) - 1;
 
                 float alphaTrunc = alpha - (float)intAlpha;
                 float betaTrunc = beta - (float)intBeta;
 
                 dblOutput += w * (
-                    VALUE_4(input, intSample, intDepth, bottom, left)*(1 - alphaTrunc)*(1 - betaTrunc) + 
-                    VALUE_4(input, intSample, intDepth, top, left)*alphaTrunc*(1 - betaTrunc) + 
-                    VALUE_4(input, intSample, intDepth, bottom, right)*(1 - alphaTrunc)*betaTrunc + 
+                    VALUE_4(input, intSample, intDepth, bottom, left)*(1 - alphaTrunc)*(1 - betaTrunc) +
+                    VALUE_4(input, intSample, intDepth, top, left)*alphaTrunc*(1 - betaTrunc) +
+                    VALUE_4(input, intSample, intDepth, bottom, right)*(1 - alphaTrunc)*betaTrunc +
                     VALUE_4(input, intSample, intDepth, top, right)*alphaTrunc*betaTrunc
                 );
             }
         }
 
         output[intIndex] = dblOutput;
-    } 
+    }
 }
 '''
 
@@ -59,8 +78,8 @@ extern "C" __global__ void kernel_Synth_updateGradWeight(
     const float* offset_y,
     const float* offset_x,
     float* gradWeight
-) 
-{ 
+)
+{
     for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
         float floatOutput = 0.0;
 
@@ -79,24 +98,43 @@ extern "C" __global__ void kernel_Synth_updateGradWeight(
             int intAlpha    = (int)alpha;
             int intBeta     = (int)beta;
 
-            int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
-            int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
-            int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
-            int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
+            int bottom = y + row*DILATION + intAlpha;
+            if(bottom < 0)
+                bottom = 0;
+            if(bottom > SIZE_2(input) - 1)
+                bottom = SIZE_2(input) - 1;
+
+            int left = x + col*DILATION + intBeta;
+            if(left < 0)
+                left = 0;
+            if(left > SIZE_3(input) - 1)
+                left = SIZE_3(input) - 1;
+
+            int top = y + row*DILATION + intAlpha + 1;
+            if(top < 0)
+                top = 0;
+            if(top > SIZE_2(input) - 1)
+                top = SIZE_2(input) - 1;
+
+            int right = x + col*DILATION + intBeta + 1;
+            if(right < 0)
+                right = 0;
+            if(right > SIZE_3(input) - 1)
+                right = SIZE_3(input) - 1;
 
             float alphaTrunc = alpha - (float)intAlpha;
             float betaTrunc = beta - (float)intBeta;
-            
+
             floatOutput += delta * (
-                VALUE_4(input, intSample, depth, bottom, left)*(1 - alphaTrunc)*(1 - betaTrunc) + 
-                VALUE_4(input, intSample, depth, top, left)*alphaTrunc*(1 - betaTrunc) + 
-                VALUE_4(input, intSample, depth, bottom, right)*(1 - alphaTrunc)*betaTrunc + 
+                VALUE_4(input, intSample, depth, bottom, left)*(1 - alphaTrunc)*(1 - betaTrunc) +
+                VALUE_4(input, intSample, depth, top, left)*alphaTrunc*(1 - betaTrunc) +
+                VALUE_4(input, intSample, depth, bottom, right)*(1 - alphaTrunc)*betaTrunc +
                 VALUE_4(input, intSample, depth, top, right)*alphaTrunc*betaTrunc
             );
         }
 
         gradWeight[intIndex] = floatOutput;
-    } 
+    }
 }
 '''
 
@@ -109,8 +147,8 @@ extern "C" __global__ void kernel_Synth_updateGradAlpha(
     const float* offset_y,
     const float* offset_x,
     float* gradOffset_y
-) 
-{ 
+)
+{
     for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
         float floatOutput = 0.0;
 
@@ -130,23 +168,43 @@ extern "C" __global__ void kernel_Synth_updateGradAlpha(
             int intAlpha    = (int)alpha;
             int intBeta     = (int)beta;
 
-            int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
-            int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
-            int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
-            int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
+            int bottom = y + row*DILATION + intAlpha;
+            if(bottom < 0)
+                bottom = 0;
+            if(bottom > SIZE_2(input) - 1)
+                bottom = SIZE_2(input) - 1;
+
+            int left = x + col*DILATION + intBeta;
+            if(left < 0)
+                left = 0;
+            if(left > SIZE_3(input) - 1)
+                left = SIZE_3(input) - 1;
+
+            int top = y + row*DILATION + intAlpha + 1;
+            if(top < 0)
+                top = 0;
+            if(top > SIZE_2(input) - 1)
+                top = SIZE_2(input) - 1;
+
+            int right = x + col*DILATION + intBeta + 1;
+            if(right < 0)
+                right = 0;
+            if(right > SIZE_3(input) - 1)
+                right = SIZE_3(input) - 1;
+
 
             float betaTrunc = beta - (float)intBeta;
 
             floatOutput += delta * w * (
-                - VALUE_4(input, intSample, depth, bottom, left)*(1 - betaTrunc) 
-                + VALUE_4(input, intSample, depth, top, left)*(1 - betaTrunc) 
-                - VALUE_4(input, intSample, depth, bottom, right)*betaTrunc 
+                - VALUE_4(input, intSample, depth, bottom, left)*(1 - betaTrunc)
+                + VALUE_4(input, intSample, depth, top, left)*(1 - betaTrunc)
+                - VALUE_4(input, intSample, depth, bottom, right)*betaTrunc
                 + VALUE_4(input, intSample, depth, top, right)*betaTrunc
             );
         }
 
         gradOffset_y[intIndex] = floatOutput;
-    } 
+    }
 }
 '''
 
@@ -159,8 +217,8 @@ extern "C" __global__ void kernel_Synth_updateGradBeta(
     const float* offset_y,
     const float* offset_x,
     float* gradOffset_x
-) 
-{ 
+)
+{
     for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
         float floatOutput = 0.0;
 
@@ -180,34 +238,53 @@ extern "C" __global__ void kernel_Synth_updateGradBeta(
             int intAlpha    = (int)alpha;
             int intBeta     = (int)beta;
 
-            int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
-            int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
-            int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
-            int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
+            int bottom = y + row*DILATION + intAlpha;
+            if(bottom < 0)
+                bottom = 0;
+            if(bottom > SIZE_2(input) - 1)
+                bottom = SIZE_2(input) - 1;
+
+            int left = x + col*DILATION + intBeta;
+            if(left < 0)
+                left = 0;
+            if(left > SIZE_3(input) - 1)
+                left = SIZE_3(input) - 1;
+
+            int top = y + row*DILATION + intAlpha + 1;
+            if(top < 0)
+                top = 0;
+            if(top > SIZE_2(input) - 1)
+                top = SIZE_2(input) - 1;
+
+            int right = x + col*DILATION + intBeta + 1;
+            if(right < 0)
+                right = 0;
+            if(right > SIZE_3(input) - 1)
+                right = SIZE_3(input) - 1;
 
             float alphaTrunc = alpha - (float)intAlpha;
 
             floatOutput += delta * w * (
-                - VALUE_4(input, intSample, depth, bottom, left)*(1 - alphaTrunc) 
-                - VALUE_4(input, intSample, depth, top, left)*alphaTrunc 
-                + VALUE_4(input, intSample, depth, bottom, right)*(1 - alphaTrunc) 
+                - VALUE_4(input, intSample, depth, bottom, left)*(1 - alphaTrunc)
+                - VALUE_4(input, intSample, depth, top, left)*alphaTrunc
+                + VALUE_4(input, intSample, depth, bottom, right)*(1 - alphaTrunc)
                 + VALUE_4(input, intSample, depth, top, right)*alphaTrunc
             );
         }
 
         gradOffset_x[intIndex] = floatOutput;
-    } 
+    }
 }
 '''
 
-def cupy_kernel(strFunc, intFilterSize, intDilation, objVars): 
+def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
     strKernel = globals()[strFunc]
 
     # purpose: getting size of tensor axis
-    while True: 
+    while True:
         objMatch = re.search('(SIZE_)([0-4])(\()([^\)]*)(\))', strKernel)
 
-        if objMatch is None: 
+        if objMatch is None:
             break
 
         intArg = int(objMatch.group(2))
@@ -233,22 +310,6 @@ def cupy_kernel(strFunc, intFilterSize, intDilation, objVars):
 
         strKernel = strKernel.replace(objMatch.group(0), strTensor + '[' + str.join('+', strIndex) + ']')
 
-    # purpose: integer clamp a given value to the range [0, upperBound]
-    while True: 
-        objMatch = re.search('(CLAMP)(\()([^\)]*)(\))', strKernel)
-
-        if objMatch is None: 
-            break
-
-        strArgs = objMatch.group(3).split(',')
-        
-        assert (len(strArgs) == 3)
-
-        strValue, strLowerBound, strUpperBound = strArgs
-        strReplacement = f"min(max({strValue}, {strLowerBound}), {strUpperBound})"
-
-        strKernel = strKernel.replace(objMatch.group(0), strReplacement)
-
     # setting macros
     strKernel = strKernel.replace('F_SIZE', str(intFilterSize))
     strKernel = strKernel.replace('DILATION', str(intDilation))
@@ -260,9 +321,9 @@ def cupy_launch(strFunc, strKernel):
     module = cupy.RawModule(code = strKernel)
     return module.get_function(strFunc)
 
-class FunctionSynth(torch.autograd.Function): 
+class FunctionSynth(torch.autograd.Function):
     @staticmethod
-    def forward(context, input, weight, offset_y, offset_x, dilation): 
+    def forward(context, input, weight, offset_y, offset_x, dilation):
         context.save_for_backward(input, weight, offset_y, offset_x)
         context.dilation = dilation
 
@@ -284,14 +345,14 @@ class FunctionSynth(torch.autograd.Function):
 
         output = input.new_zeros(intSample, intInputDepth, intOutputHeight, intOutputWidth)
 
-        if input.is_cuda: 
-            # torch.cuda.current_stream() is a function that returns the current CUDA stream for the default CUDA device. 
-            # A CUDA stream is a sequence of operations that execute on the GPU in the order they were issued by the host (CPU). 
+        if input.is_cuda:
+            # torch.cuda.current_stream() is a function that returns the current CUDA stream for the default CUDA device.
+            # A CUDA stream is a sequence of operations that execute on the GPU in the order they were issued by the host (CPU).
             # This allows for concurrent execution of operations where possible, such as overlapping data transfers with computations.
-            # .cuda_stream is an attribute of the object returned by torch.cuda.current_stream(). 
+            # .cuda_stream is an attribute of the object returned by torch.cuda.current_stream().
             # It likely represents the actual underlying CUDA stream object (often a pointer or a low-level handler) that interfaces directly with the CUDA driver API.
 
-            class Stream: 
+            class Stream:
                 ptr = torch.cuda.current_stream().cuda_stream
 
             n = output.nelement()
@@ -307,11 +368,11 @@ class FunctionSynth(torch.autograd.Function):
                 args=[n, input.data_ptr(), weight.data_ptr(), offset_y.data_ptr(), offset_x.data_ptr(), output.data_ptr()],
                 stream=Stream
             )
-        else: 
+        else:
             raise NotImplementedError()
 
         return output
-    
+
     @staticmethod
     def backward(context, gradOutput):
         input, weight, offset_y, offset_x = context.saved_tensors
