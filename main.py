@@ -172,9 +172,11 @@ def single_interpolation(args):
         transforms.ToTensor()
     ])
 
+    device = torch.device('cuda' if args.cuda else 'cpu')
+
     t = args.time_step
     input_image_paths = [args.f1_path, args.f2_path, args.f3_path, args.f4_path]
-    input_images = [torch.unsqueeze(img_transforms(Image.open(path)), 0) for path in input_image_paths]
+    input_images = [torch.unsqueeze(img_transforms(Image.open(path)), 0).to(device) for path in input_image_paths]
     output_frame_times = torch.tensor([t])
     model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
     model.eval()
