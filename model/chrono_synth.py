@@ -99,7 +99,7 @@ class ChronoSynth(nn.Module):
 
         occ = torch.cat(torch.unbind(features, 1), 1)
         occ = self.lrelu(self.feature_fuse(occ))
-        print("occy way dimensions after unbinding")
+        print("occy way dimensions after unbinding", occ.shape)
 
         # Concatenate the time tensor to the channel dimension of the features
         features = torch.cat([features, time_tensor], 1)
