@@ -14,7 +14,7 @@ from model.artemis import ArTEMIS
 from torch.optim import Adamax
 from torch.optim.lr_scheduler import MultiStepLR
 # from loss import Loss
-from test_l1_loss import Loss
+from loss import Loss
 from metrics import eval_metrics
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
 
