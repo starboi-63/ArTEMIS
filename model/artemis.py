@@ -50,12 +50,12 @@ class ArTEMIS(nn.Module):
             num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
         
     
-    def forward(self, frames, output_frame_time):
+    def forward(self, frames, output_frame_times):
         '''
         Performs the forward pass for each output frame needed, a number of times equal to num_outputs.
         Returns the interpolated frames as a list of outputs: [interp1, interp2, interp3, ...]
         frames: input frames
-        output_frame_time: arbitrary 't' from 0 to 1
+        output_frame_times: batch of arbitrary 't' from 0 to 1
         '''
 
         images = torch.stack(frames, dim=2)
@@ -83,12 +83,12 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
-        curr_out_ll = self.predict1(low_scale_features, frames, x2.size()[-2:], output_frame_time)
+        curr_out_ll = self.predict1(low_scale_features, frames, x2.size()[-2:], output_frame_times)
 
-        curr_out_l = self.predict2(mid_scale_features, frames, x1.size()[-2:], output_frame_time)
+        curr_out_l = self.predict2(mid_scale_features, frames, x1.size()[-2:], output_frame_times)
         curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()[-2:], mode='bilinear') + curr_out_l
 
-        curr_out = self.predict3(high_scale_features, frames, x0.size()[-2:], output_frame_time)
+        curr_out = self.predict3(high_scale_features, frames, x0.size()[-2:], output_frame_times)
         curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()[-2:], mode='bilinear') + curr_out
 
         return curr_out_ll, curr_out_l, curr_out
