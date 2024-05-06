@@ -53,14 +53,11 @@ kernel_Synth_updateOutput = '''
                     if(right > SIZE_3(input) - 1)
                         right = SIZE_3(input) - 1;
 
-                    float alphaTrunc = alpha - (float)intAlpha;
-                    float betaTrunc = beta - (float)intBeta;
-
                     dblOutput += w * (
-                        VALUE_4(input, intSample, intDepth, bottom, left)*(1 - alphaTrunc)*(1 - betaTrunc) +
-                        VALUE_4(input, intSample, intDepth, top, left)*alphaTrunc*(1 - betaTrunc) +
-                        VALUE_4(input, intSample, intDepth, bottom, right)*(1 - alphaTrunc)*betaTrunc +
-                        VALUE_4(input, intSample, intDepth, top, right)*alphaTrunc*betaTrunc
+                        VALUE_4(input, intSample, intDepth, bottom, left)*(1 - (alpha-(float)intAlpha))*(1 - (beta-(float)intBeta)) +
+                        VALUE_4(input, intSample, intDepth, top, left)*(alpha-(float)intAlpha)*(1 - (beta-(float)intBeta)) +
+                        VALUE_4(input, intSample, intDepth, bottom, right)*(1 - (alpha-(float)intAlpha))*(beta-(float)intBeta) +
+                        VALUE_4(input, intSample, intDepth, top, right)*(alpha-(float)intAlpha)*(beta-(float)intBeta)
                     );
                 }
             }
