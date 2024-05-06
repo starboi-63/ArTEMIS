@@ -87,11 +87,19 @@ class ChronoSynth(nn.Module):
         # Create a tensor which will add 1 extra channel representing the time of context frames
         time_tensor = torch.ones((B, 1, T, cur_H, cur_W)).to(features.device)
 
+        # NOTE: For training, since we are using the septuplet dataset, our frame times are -0.25, 0, 1, 1.35
+
+        # -------------------------------------------------------------------------------------------
+        frame_times = [-0.25, 0, 1, 1.25]
         # Example: goes from -1, 0, 1, 2 for T = 4
         start, end = -T//2 + 1, T//2 + 1
-        for context_frame_time in range(start, end):
+        for i in range(start, end):
+            context_frame_time = frame_times[i]
             time_differences = torch.abs(context_frame_time - output_frame_times)
+            print("absolute time diff for context frame ", i, ": ", context_frame_time)
             time_tensor[:, :, context_frame_time - start, :, :] *= time_differences.view(B, 1, 1, 1)
+        # -------------------------------------------------------------------------------------------
+
 
         # Concatenate the time tensor to the channel dimension of the features
         features = torch.cat([features, time_tensor], 1)
