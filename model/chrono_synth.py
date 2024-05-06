@@ -91,9 +91,6 @@ class ChronoSynth(nn.Module):
         start, end = -T//2 + 1, T//2 + 1
         for context_frame_time in range(start, end):
             time_differences = torch.abs(context_frame_time - output_frame_times)
-            print("shape of time_differences: ", time_differences.shape)
-            print("shape of view", time_differences.view(B, 1, 1, 1).shape)
-            print("shape of time tensor slice: ", time_tensor[:, :, context_frame_time - start, :, :].shape)
             time_tensor[:, :, context_frame_time - start, :, :] *= time_differences.view(B, 1, 1, 1)
 
         # Concatenate the time tensor to the channel dimension of the features
