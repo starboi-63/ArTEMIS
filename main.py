@@ -43,11 +43,24 @@ else:
     raise NotImplementedError
 
 
-def save_image(output, gt_image, batch_index, context_frames, epoch_index):
+def save_image(image, name, path):
+    """
+    Save an image to disk
+    """
+    # Convert to numpy and scale to 0-255
+    image = image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
+    # Convert to BGR for OpenCV
+    image = cv2.cvtColor(image.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+    # Create directory if they don't exist
+    os.makedirs(path, exist_ok=True)
+    # Write image to disk
+    cv2.imwrite(os.path.join(path, name), image)
+
+
+def save_images(output, gt_image, batch_index, context_frames, epoch_index):
     """
     Given an output and ground truth, save them all locally along with context frames
     outputs are, like always, a triple of ll, l, and output
-
     """
     _, _, output_img = output
 
@@ -56,45 +69,23 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
     context_frames = [list(context_frame) for context_frame in zip(*context_frames)]
 
     for sample_num, (gt, output_image, contexts) in enumerate(zip(gt_image, output_img, context_frames)):
-        # Convert to numpy and scale to 0-255
-        gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
-        output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
-
-        # Convert to BGR for OpenCV
-        gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-        output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-
+        # Create image names
         gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
         output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
 
         # Create directories for each epoch, batch, sample, and frame
-        gt_write_path = os.path.join(
-            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", gt_image_name
-        )
+        gt_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
+        output_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
 
-        output_write_path = os.path.join(
-            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", output_image_name
-        )
+        # Save the ground-truth and prediction images
+        save_image(gt, gt_image_name, gt_write_path)
+        save_image(output_image, output_image_name, output_write_path)
 
-        # Create directories if they don't exist
-        os.makedirs(os.path.dirname(gt_write_path), exist_ok=True)
-        os.makedirs(os.path.dirname(output_write_path), exist_ok=True)
-
-        # Write images to disk
-        cv2.imwrite(gt_write_path, gt_image_result)
-        cv2.imwrite(output_write_path, output_image_result)
-
+        # Save the context frames
         for i, context in enumerate(contexts):
-            context_image_color = context.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
-            context_image_result = cv2.cvtColor(context_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
             context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
-            
-            context_write_path = os.path.join(
-                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", context_image_name
-            )
-
-            os.makedirs(os.path.dirname(context_write_path), exist_ok=True)
-            cv2.imwrite(context_write_path, context_image_result)
+            context_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", context_image_name)
+            save_image(context, context_image_name, context_write_path)
 
 
 class ArTEMISModel(L.LightningModule):
@@ -127,7 +118,7 @@ class ArTEMISModel(L.LightningModule):
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
-            save_image(output, gt_image, batch_index = batch_idx, context_frames=images, epoch_index = self.current_epoch)
+            save_images(output, gt_image, batch_index = batch_idx, context_frames=images, epoch_index = self.current_epoch)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -188,7 +179,6 @@ def single_interpolation(args):
     model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
     model.eval()
     _, _, out = model.forward(input_images, output_frame_times)
-
 
 
 def main(args):
