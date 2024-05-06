@@ -139,8 +139,13 @@ def main(args):
     # Set the precision for the model to fully utilize the GPU tensor cores
     torch.set_float32_matmul_precision('medium')
 
-    # Train with Lightning 
-    model = ArTEMISModel(args)
+    # Train with Lightning: Load from checkpoint if specified
+    if args.use_checkpoint:
+        model = ArTEMISModel.load_from_checkpoint(args.checkpoint_dir)
+        print("loading from checkpoint: ", args.checkpoint_dir)
+    else:
+        model = ArTEMISModel(args)
+
     logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, default_root_dir=args.checkpoint_dir, logger=logger)
     trainer.fit(model, train_loader)
