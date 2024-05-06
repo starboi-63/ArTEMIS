@@ -339,8 +339,8 @@ class FunctionSynth(torch.autograd.Function):
             cupy_launch('kernel_Synth_updateOutput', cupy_kernel('kernel_Synth_updateOutput', intFilterSize, dilation, {
                 'input': input,
                 'weight': weight,
-                'offset_y': offset_y,
-                'offset_x': offset_x,
+                'offset_i': offset_y,
+                'offset_j': offset_x,
                 'output': output
             }))(
                 grid=tuple([math.ceil(n / 512), 1, 1]),
@@ -385,8 +385,8 @@ class FunctionSynth(torch.autograd.Function):
             cupy_launch('kernel_Synth_updateGradWeight', cupy_kernel('kernel_Synth_updateGradWeight', intFilterSize, dilation, {
                 'gradLoss': gradOutput,
                 'input': input,
-                'offset_y': offset_y,
-                'offset_x': offset_x,
+                'offset_i': offset_y,
+                'offset_j': offset_x,
                 'gradWeight': gradWeight
             }))(
                 grid=tuple([math.ceil(n / 512), 1, 1]),
@@ -401,9 +401,9 @@ class FunctionSynth(torch.autograd.Function):
                 'gradLoss': gradOutput,
                 'input': input,
                 'weight': weight,
-                'offset_y': offset_y,
-                'offset_x': offset_x,
-                'gradOffset_y': gradOffset_y
+                'offset_i': offset_y,
+                'offset_j': offset_x,
+                'gradOffset_i': gradOffset_y
             }))(
                 grid=tuple([math.ceil(n / 512), 1, 1]),
                 block=tuple([512, 1, 1]),
@@ -417,9 +417,9 @@ class FunctionSynth(torch.autograd.Function):
                 'gradLoss': gradOutput,
                 'input': input,
                 'weight': weight,
-                'offset_y': offset_y,
-                'offset_x': offset_x,
-                'gradOffset_x': gradOffset_x
+                'offset_i': offset_y,
+                'offset_j': offset_x,
+                'gradOffset_j': gradOffset_x
             }))(
                 grid=tuple([math.ceil(n / 512), 1, 1]),
                 block=tuple([512, 1, 1]),
