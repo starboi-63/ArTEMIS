@@ -116,10 +116,10 @@ class ArTEMISModel(L.LightningModule):
 
     
     def test_step(self, batch, batch_idx):
-        images, gt_images = batch
-        outputs = self.model(images)
-        loss = self.loss(outputs, gt_images)
-        psnr, ssim = self.validation(outputs, gt_images)
+        images, gt_image = batch
+        output = self.model(images)
+        loss = self.loss(output, gt_image)
+        psnr, ssim = self.validation(output, gt_image)
 
         # log metrics for each step
         self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
