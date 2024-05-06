@@ -9,7 +9,9 @@ class ArTEMIS(nn.Module):
     def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
         super().__init__()
 
-        num_features = [192, 128, 64, 32]
+        # TODO: Change num_features to [512, 256, 128, 64] if we want to scale up model 
+        # num_features = [192, 128, 64, 32]
+        num_features = [512, 256, 128, 64]
         # For Sep-STS (Separated-Spatio-Temporal-SWIN) Encoder
         spatial_window_sizes = [(1, 8, 8), (1, 8, 8), (1, 8, 8), (1, 8, 8)]
         num_heads = [2, 4, 8, 16]  # For Multi-Head Attention
@@ -39,8 +41,6 @@ class ArTEMIS(nn.Module):
         self.smooth1 = SmoothNet(num_features[1]*growth, num_features_out)
         self.smooth2 = SmoothNet(num_features[2]*growth, num_features_out)
         self.smooth3 = SmoothNet(num_features[3]*growth, num_features_out)
-
-        num_features_plus_time = num_features_out + 1
 
         self.predict1 = ChronoSynth(
             num_inputs, num_features_out, kernel_size, dilation, apply_softmax=True)

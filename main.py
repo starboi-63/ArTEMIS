@@ -43,15 +43,19 @@ else:
     raise NotImplementedError
 
 
-def save_images(output, gt_image, batch_index, epoch_index):
+def save_image(output, gt_image, batch_index, context_frames, epoch_index):
     """
-    Given some outputs and ground truths, save them all locally 
+    Given an output and ground truth, save them all locally along with context frames
     outputs are, like always, a triple of ll, l, and output
 
     """
     _, _, output_img = output
 
-    for sample_num, (gt, output_image) in enumerate(zip(gt_image, output_img)):
+    # context_frames is a list of 4 tensors: [(16, 3, 256, 256), (16, 3, 256, 256), (16, 3, 256, 256), (16, 3, 256, 256)]
+    # Want 16 lists of lists of 4 tensors instead: [[(3, 256, 256), (3, 256, 256), (3, 256, 256), (3, 256, 256)], ...]
+    context_frames = [list(context_frame) for context_frame in zip(*context_frames)]
+
+    for sample_num, (gt, output_image, contexts) in enumerate(zip(gt_image, output_img, context_frames)):
         # Convert to numpy and scale to 0-255
         gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
         output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
@@ -80,6 +84,18 @@ def save_images(output, gt_image, batch_index, epoch_index):
         cv2.imwrite(gt_write_path, gt_image_result)
         cv2.imwrite(output_write_path, output_image_result)
 
+        for i, context in enumerate(contexts):
+            context_image_color = context.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
+            context_image_result = cv2.cvtColor(context_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+            context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
+            
+            context_write_path = os.path.join(
+                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", context_image_name
+            )
+
+            os.makedirs(os.path.dirname(context_write_path), exist_ok=True)
+            cv2.imwrite(context_write_path, context_image_result)
+
 
 class ArTEMISModel(L.LightningModule):
     def __init__(self, cmd_line_args=args):
@@ -100,12 +116,13 @@ class ArTEMISModel(L.LightningModule):
     
     def training_step(self, batch, batch_idx):
         images, gt_image, output_frame_times = batch
+
         output = self(images, output_frame_times)
         loss = self.loss(output, gt_image)
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
-            save_images(output, gt_image, batch_index = batch_idx, epoch_index = self.current_epoch)
+            save_image(output, gt_image, batch_index = batch_idx, context_frames=images, epoch_index = self.current_epoch)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -136,14 +153,16 @@ class ArTEMISModel(L.LightningModule):
 
 
 def main(args):
-    # Set the precision for the model to fully utilize the GPU tensor cores
-    torch.set_float32_matmul_precision('medium')
-
-    # Train with Lightning 
-    model = ArTEMISModel(args)
+    torch.set_float32_matmul_precision("medium")
     logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
-    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, default_root_dir=args.checkpoint_dir, logger=logger)
-    trainer.fit(model, train_loader)
+    model = ArTEMISModel(args)
+    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint)
+
+    # Train with Lightning: Load from checkpoint if specified
+    if args.use_checkpoint:
+        trainer.fit(model, train_loader, ckpt_path=args.checkpoint_dir)
+    else:
+        trainer.fit(model, train_loader)
 
     # Test the model with Lightning
     trainer.test(model, test_loader)
