@@ -148,20 +148,16 @@ class ArTEMISModel(L.LightningModule):
 
 
 def main(args):
+    logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
+    model = ArTEMISModel(args)
+    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger)
+
     # Train with Lightning: Load from checkpoint if specified
     if args.use_checkpoint:
-        model = ArTEMISModel.load_from_checkpoint(args.checkpoint_dir)
-        print("loading from checkpoint: ", args.checkpoint_dir)
+        trainer.fit(model, train_loader, ckpt_path=args.checkpoint_dir)
+        print("using checkpoint:", args.checkpoint_dir)
     else:
-        model = ArTEMISModel(args)
-
-    logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
-
-    # NOTE: bf16-mixed halves precision on operations when available; this is for speedup purposes
-
-    # trainer = L.Trainer(precision="bf16-mixed", max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger)
-    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger)
-    trainer.fit(model, train_loader)
+        trainer.fit(model, train_loader)
 
     # Test the model with Lightning
     trainer.test(model, test_loader)
