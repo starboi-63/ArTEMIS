@@ -155,7 +155,6 @@ def main(args):
     # Train with Lightning: Load from checkpoint if specified
     if args.use_checkpoint:
         trainer.fit(model, train_loader, ckpt_path=args.checkpoint_dir)
-        print("using checkpoint:", args.checkpoint_dir)
     else:
         trainer.fit(model, train_loader)
 
