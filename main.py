@@ -52,6 +52,7 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
     _, _, output_img = output
 
     for sample_num, (gt, output_image, contexts) in enumerate(zip(gt_image, output_img, context_frames)):
+        print(len(contexts))
         # Convert to numpy and scale to 0-255
         gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
         output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
