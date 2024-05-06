@@ -5,6 +5,7 @@ import math
 
 kernel_AdaCoF_updateOutput = '''
 extern "C" __global__ void kernel_AdaCoF_updateOutput(
+        const int n,
         const float* input,
         const float* weight, 
         const float* offset_y,
