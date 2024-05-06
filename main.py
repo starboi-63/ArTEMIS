@@ -83,7 +83,7 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
 
         # Do the same process for the 4 sample frames
         for i, context in enumerate(contexts):
-            context_image_color = context.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() & 255.0
+            context_image_color = context.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
             context_image_result = cv2.cvtColor(context_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
             context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
             context_write_path = os.path.join(
