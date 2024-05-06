@@ -81,6 +81,7 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
         cv2.imwrite(output_write_path, output_image_result)
 
         # Do the same process for the 4 sample frames
+        print("len contexts", len(contexts))
         for i, context in enumerate(contexts):
             print("sample num", sample_num)
             print("i", i)
