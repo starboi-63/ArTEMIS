@@ -84,29 +84,25 @@ class ChronoSynth(nn.Module):
         """
         H, W = output_size
 
-        occ = torch.cat(torch.unbind(features, 1), 1)
-        occ = self.lrelu(self.feature_fuse(occ))
-        occlusion = self.moduleOcclusion(occ, (H, W)) 
-
         B, C, T, cur_H, cur_W = features.shape
 
         # Create a tensor which will add 1 extra channel representing the time of context frames
         time_tensor = torch.ones((B, 1, T, cur_H, cur_W)).to(features.device)
 
-        # Set absolute time differences for left context frames
-        for i in range(T//2):
-            context_frame_time = (i-(T//2-1)) * self.delta_t
+        # Example: goes from -1, 0, 1, 2 for T = 4
+        start, end = -T//2 + 1, T//2 + 1
+        for context_frame_time in range(start, end):
             time_difference = abs(context_frame_time - output_frame_time)
-            time_tensor[:, :, i, :, :] *= time_difference
+            time_tensor[:, :, context_frame_time - start, :, :] *= time_difference
 
-        # # Set absolute time differences for right context frames
-        for i in range(T//2):
-            context_frame_time = (i + 1) * self.delta_t
-            time_difference = abs(context_frame_time - output_frame_time)
-            time_tensor[:, :, i+T//2, :, :] *= time_difference
+        print("time tensor after", time_tensor)
 
         # Concatenate the time tensor to the channel dimension of the features
         features = torch.cat([features, time_tensor], 1)
+
+        occ = torch.cat(torch.unbind(features, 1), 1)
+        occ = self.lrelu(self.feature_fuse(occ))
+        occlusion = self.moduleOcclusion(occ, (H, W)) 
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
         features = features.transpose(1, 2).reshape(B*T, C + 1, cur_H, cur_W)
