@@ -46,7 +46,7 @@ else:
 
 
 # def save_images(outputs, gt_images, batch_index, epoch_index = 0):
-def save_images(output, gt_image, batch_index, epoch_index = 0):
+def save_images(output, gt_image, batch_index, epoch_index):
     """
     Given some outputs and ground truths, save them all locally 
     outputs are, like always, a triple of ll, l, and output
@@ -108,7 +108,7 @@ class ArTEMISModel(L.LightningModule):
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
-             save_images(output, gt_image, batch_index = batch_idx)
+             save_images(output, gt_image, batch_index = batch_idx, epoch_index = self.current_epoch)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
