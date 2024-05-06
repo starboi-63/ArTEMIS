@@ -33,6 +33,7 @@ eval_arg.add_argument("--f2_path", type=str, help="Input Frame 2 path.")
 eval_arg.add_argument("--f3_path", type=str, help="Input Frame 3 path.")
 eval_arg.add_argument("--time_step", type=float, default=0.5, help ="Arbitrary time step from 0-1.")
 eval_arg.add_argument("--parameter_path", type=str, help="Path to the evaluation (best) parameters")
+eval_arg.add_argument("--eval_output_path", type=str) 
 
 # Training / test parameters
 learn_arg = add_argument_group("Learning")

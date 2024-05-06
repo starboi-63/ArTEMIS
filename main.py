@@ -5,15 +5,15 @@ import os
 import cv2
 import numpy as np
 
-# from PIL import Image
+from PIL import Image
 import lightning as L
 import torch
+from torchvision import transforms
 
 from lightning.pytorch.loggers import TensorBoardLogger
 from model.artemis import ArTEMIS
 from torch.optim import Adamax
 from torch.optim.lr_scheduler import MultiStepLR
-# from loss import Loss
 from loss import Loss
 from metrics import eval_metrics
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
@@ -111,6 +111,11 @@ class ArTEMISModel(L.LightningModule):
 
 
     def forward(self, images, output_frame_times):
+        """
+        Run a forward pass of the model:
+        images: a list of 4 tensors, each of shape (batch_size, 3, 256, 256)
+        output_frame_times: a batch of time steps: (batch_size, 1)
+        """
         return self.model(images, output_frame_times)
 
     
@@ -172,8 +177,17 @@ def single_interpolation(args):
     Run an interpolation on a single input of 4 frames: 
     Produces a single output frame at an arbitrary time step
     """
+    img_transforms = transforms.Compose([
+        transforms.ToTensor()
+    ])
+
     t = args.time_step
-    input_image_paths = 
+    input_image_paths = [args.f0_path, args.f1_path, args.f2_path, args.f3_path]
+    input_images = [torch.unsqueeze(img_transforms(Image.open(path)), 0) for path in input_image_paths]
+    output_frame_times = torch.tensor([t])
+    model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
+    model.eval()
+    _, _, out = model.forward(input_images, output_frame_times)
 
 
 
