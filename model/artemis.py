@@ -54,22 +54,22 @@ class ArTEMIS(nn.Module):
             num_inputs, num_features_out, kernel_size, dilation, self.delta_t, apply_softmax=False)
 
 
-    def generate_single_frame(self, frames, frame_index, low_scale_features, mid_scale_features, high_scale_features, x0_size, x1_size, x2_size):
-        """
-        Use a worker thread to generate A SINGLE frame 
-        frame_index: the index of the frame, (0, 1, 2, ...)
-        """
-        time_step = frame_index * self.delta_t
-
-        curr_out_ll = self.predict1(low_scale_features, frames, x2_size[-2:], time_step)
-
-        curr_out_l = self.predict2(mid_scale_features, frames, x1_size[-2:], time_step)
-        curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()[-2:], mode='bilinear') + curr_out_l
-
-        curr_out = self.predict3(high_scale_features, frames, x0_size[-2:], time_step)
-        curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()[-2:], mode='bilinear') + curr_out
-
-        return curr_out_ll, curr_out_l, curr_out
+    # def generate_single_frame(self, frames, frame_index, low_scale_features, mid_scale_features, high_scale_features, x0_size, x1_size, x2_size):
+    #     """
+    #     Use a worker thread to generate A SINGLE frame 
+    #     frame_index: the index of the frame, (0, 1, 2, ...)
+    #     """
+    #     time_step = frame_index * self.delta_t
+    #
+    #     curr_out_ll = self.predict1(low_scale_features, frames, x2_size[-2:], time_step)
+    #
+    #     curr_out_l = self.predict2(mid_scale_features, frames, x1_size[-2:], time_step)
+    #     curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()[-2:], mode='bilinear') + curr_out_l
+    #
+    #     curr_out = self.predict3(high_scale_features, frames, x0_size[-2:], time_step)
+    #     curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()[-2:], mode='bilinear') + curr_out
+    #
+    #     return curr_out_ll, curr_out_l, curr_out
     
     
     def forward(self, frames):
@@ -103,6 +103,20 @@ class ArTEMIS(nn.Module):
         mid_scale_features = self.smooth2(dx2)
         high_scale_features = self.smooth3(dx1)
 
+        # NOTE: PASSING IN 1 FOR FRAME INDEX BEC IT DOESNT MATTER LOL
+
+        time_step = 1 * self.delta_t
+
+        curr_out_ll = self.predict1(low_scale_features, frames, x2.size()[-2:], time_step)
+
+        curr_out_l = self.predict2(mid_scale_features, frames, x1.size()[-2:], time_step)
+        curr_out_l = nn.functional.interpolate(curr_out_ll, size=curr_out_l.size()[-2:], mode='bilinear') + curr_out_l
+
+        curr_out = self.predict3(high_scale_features, frames, x0.size()[-2:], time_step)
+        curr_out = nn.functional.interpolate(curr_out_l, size=curr_out.size()[-2:], mode='bilinear') + curr_out
+
+        return curr_out_ll, curr_out_l, curr_out
+
         # Define the three output lists for each of the generated frame sizes
         # out_list = []
         # out_l_list = []
@@ -117,12 +131,13 @@ class ArTEMIS(nn.Module):
         # out_ll, out_l, out = self.generate_single_frame(frames, i, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
 
         # NOTE: PASSING IN 1 FOR FRAME INDEX BEC IT DOESNT MATTER LOL
-        out_ll, out_l, out = self.generate_single_frame(frames, 1, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
 
-        if self.training:
-            return out_ll, out_l, out
-        else:
-            return out
+        # out_ll, out_l, out = self.generate_single_frame(frames, 1, low_scale_features, mid_scale_features, high_scale_features, x0.size(), x1.size(), x2.size())
+        #
+        # if self.training:
+        #     return out_ll, out_l, out
+        # else:
+        #     return out
 
         # if self.training:
         #     return out_ll_list, out_l_list, out_list
