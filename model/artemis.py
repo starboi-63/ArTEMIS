@@ -59,6 +59,7 @@ class ArTEMIS(nn.Module):
         '''
 
         images = torch.stack(frames, dim=2)
+        # Sanity check that the input frames are in the correct shape
         B, C, T, H, W = images.shape
 
         # Batch mean normalization works slightly better than global mean normalization (hence the repeated calls to .mean() below)
