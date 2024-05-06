@@ -24,8 +24,8 @@ kernel_Synth_updateOutput = '''
             for (int row = 0; row < F_SIZE; row += 1) {
                 for (int col = 0; col < F_SIZE; col += 1) {
                     float w         = VALUE_4(weight, intSample, row*F_SIZE+col, y, x);
-                    float alpha     = VALUE_4(offset_x, intSample, row*F_SIZE+col, y, x);
-                    float beta      = VALUE_4(offset_y, intSample, row*F_SIZE+col, y, x);
+                    float alpha     = VALUE_4(offset_y, intSample, row*F_SIZE+col, y, x);
+                    float beta      = VALUE_4(offset_x, intSample, row*F_SIZE+col, y, x);
                     int intAlpha    = (int)alpha;
                     int intBeta     = (int)beta;
 
@@ -53,11 +53,14 @@ kernel_Synth_updateOutput = '''
                     if(right > SIZE_3(input) - 1)
                         right = SIZE_3(input) - 1;
 
+                    float alphaTrunc = alpha - (float)intAlpha;
+                    float betaTrunc = beta - (float)intBeta;
+
                     dblOutput += w * (
-                        VALUE_4(input, intSample, intDepth, bottom, left)*(1 - (alpha-(float)intAlpha))*(1 - (beta-(float)intBeta)) +
-                        VALUE_4(input, intSample, intDepth, top, left)*(alpha-(float)intAlpha)*(1 - (beta-(float)intBeta)) +
-                        VALUE_4(input, intSample, intDepth, bottom, right)*(1 - (alpha-(float)intAlpha))*(beta-(float)intBeta) +
-                        VALUE_4(input, intSample, intDepth, top, right)*(alpha-(float)intAlpha)*(beta-(float)intBeta)
+                        VALUE_4(input, intSample, intDepth, bottom, left)*(1 - alphaTrunc)*(1 - betaTrunc) +
+                        VALUE_4(input, intSample, intDepth, top, left)*alphaTrunc*(1 - betaTrunc) +
+                        VALUE_4(input, intSample, intDepth, bottom, right)*(1 - alphaTrunc)*betaTrunc +
+                        VALUE_4(input, intSample, intDepth, top, right)*alphaTrunc*betaTrunc
                     );
                 }
             }
