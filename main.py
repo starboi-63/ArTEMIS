@@ -158,7 +158,7 @@ def main(args):
     logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
 
     # NOTE: bf16-mixed halves precision on operations when available; this is for speedup purposes
-    trainer = L.Trainer(precision="bf16-mixed", max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, default_root_dir=args.checkpoint_dir, logger=logger)
+    trainer = L.Trainer(precision="bf16-mixed", max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger)
     trainer.fit(model, train_loader)
 
     # Test the model with Lightning
