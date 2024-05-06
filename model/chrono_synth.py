@@ -87,7 +87,7 @@ class ChronoSynth(nn.Module):
         # Create a tensor which will add 1 extra channel representing the time of context frames
         time_tensor = torch.ones((B, 1, T, cur_H, cur_W)).to(features.device)
 
-        # NOTE: For training, since we are using the septuplet dataset, our frame times are -0.25, 0, 1, 1.35
+        # NOTE: For training, since we are using the septuplet dataset, our frame times are -0.25, 0, 1, 1.25
 
         # -------------------------------------------------------------------------------------------
         frame_times = [-0.25, 0, 1, 1.25]
