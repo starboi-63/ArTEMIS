@@ -345,8 +345,8 @@ class FunctionSynth(torch.autograd.Function):
             cupy_launch('kernel_Synth_updateOutput', cupy_kernel('kernel_Synth_updateOutput', intFilterSize, dilation, {
                 'input': input,
                 'weight': weight,
-                'offset_i': offset_y,
-                'offset_j': offset_x,
+                'offset_y': offset_y,
+                'offset_x': offset_x,
                 'output': output
             }))(
                 grid=tuple([math.ceil(n / 512), 1, 1]),
