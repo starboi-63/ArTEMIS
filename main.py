@@ -51,6 +51,10 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
     """
     _, _, output_img = output
 
+    # context_frames is a list of 4 tensors: [(16, 3, 256, 256), (16, 3, 256, 256), (16, 3, 256, 256), (16, 3, 256, 256)]
+    # Want 16 lists of lists of 4 tensors instead: [[(3, 256, 256), (3, 256, 256), (3, 256, 256), (3, 256, 256)], ...]
+    context_frames = [list(context_frame) for context_frame in zip(*context_frames)]
+
     for sample_num, (gt, output_image, contexts) in enumerate(zip(gt_image, output_img, context_frames)):
         # Convert to numpy and scale to 0-255
         gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
@@ -113,9 +117,6 @@ class ArTEMISModel(L.LightningModule):
     
     def training_step(self, batch, batch_idx):
         images, gt_image, output_frame_times = batch
-
-        print("images length", len(images))
-        print("images[0] shape", images[0].shape)
 
         output = self(images, output_frame_times)
         loss = self.loss(output, gt_image)
