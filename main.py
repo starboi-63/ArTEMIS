@@ -37,10 +37,8 @@ if args.dataset == "vimeo90K_septuplet":
     t0 = time.time()
     train_loader = get_loader('train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
     t1 = time.time()
-    print("Time to load train loader: ", t1-t0)
     test_loader = get_loader('test', args.data_root, args.test_batch_size, shuffle=False, num_workers=args.num_workers)
     t2 = time.time()
-    print("Time to load test loader", t2-t1)
 else:
     raise NotImplementedError
 
