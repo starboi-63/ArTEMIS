@@ -158,7 +158,6 @@ def main(args):
     model = ArTEMISModel(args)
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint)
     print("args use checkpoint", args.use_checkpoint)
-    checkpoint_dir = args.checkpoint_dir if args.use_checkpoint else "./0xDEADBEEF"
 
     # Train with Lightning: Load from checkpoint if specified
     if args.use_checkpoint:
