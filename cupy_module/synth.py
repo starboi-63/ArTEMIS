@@ -4,64 +4,51 @@ import re
 import math
 
 kernel_AdaCoF_updateOutput = '''
-    extern "C" __global__ void kernel_AdaCoF_updateOutput(
+extern "C" __global__ void kernel_AdaCoF_updateOutput(
         const int n,
         const float* input,
-        const float* weight,
-        const float* offset_i,
-        const float* offset_j,
+        const float* weight, 
+        const float* offset_y,
+        const float* offset_x,
         float* output
-    ) { for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
+) 
+{ 
+    for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
         float dblOutput = 0.0;
 
         const int intSample = ( intIndex / SIZE_3(output) / SIZE_2(output) / SIZE_1(output) ) % SIZE_0(output);
-        const int c         = ( intIndex / SIZE_3(output) / SIZE_2(output)                  ) % SIZE_1(output);
-        const int i         = ( intIndex / SIZE_3(output)                                   ) % SIZE_2(output);
-        const int j         = ( intIndex                                                    ) % SIZE_3(output);
+        const int intDepth  = ( intIndex / SIZE_3(output) / SIZE_2(output)                  ) % SIZE_1(output);
+        const int y         = ( intIndex / SIZE_3(output)                                   ) % SIZE_2(output);
+        const int x         = ( intIndex                                                    ) % SIZE_3(output);
+    
+        for (int row = 0; row < F_SIZE; row += 1) {
+            for (int col = 0; col < F_SIZE; col += 1) {
+                float w         = VALUE_4(weight, intSample, row*F_SIZE+col, y, x);
+                float alpha     = VALUE_4(offset_x, intSample, row*F_SIZE+col, y, x);
+                float beta      = VALUE_4(offset_y, intSample, row*F_SIZE+col, y, x);
+                int intAlpha    = (int)alpha;
+                int intBeta     = (int)beta;
 
-        for (int k = 0; k < F_SIZE; k += 1) {
-        for (int l = 0; l < F_SIZE; l += 1) {
-        float w         = VALUE_4(weight, intSample, k*F_SIZE+l, i, j);
-        float alpha     = VALUE_4(offset_i, intSample, k*F_SIZE+l, i, j);
-        float beta      = VALUE_4(offset_j, intSample, k*F_SIZE+l, i, j);
-        int A           = (int) alpha;
-        int B           = (int) beta;
+                int bottom = CLAMP(y + row*DILATION + intAlpha, 0, SIZE_2(input) - 1);
+                int left = CLAMP(x + col*DILATION + intBeta, 0, SIZE_3(input) - 1);
+                int top = CLAMP(y + row*DILATION + intAlpha + 1, 0, SIZE_2(input) - 1);
+                int right = CLAMP(x + col*DILATION + intBeta + 1, 0, SIZE_3(input) - 1);
 
-        int i_k_A = i+k*DILATION+A;
-        if(i_k_A < 0)
-            i_k_A = 0;
-        if(i_k_A > SIZE_2(input) - 1)
-            i_k_A = SIZE_2(input) - 1;
+                float alphaTrunc = alpha - (float)intAlpha;
+                float betaTrunc = beta - (float)intBeta;
 
-        int j_l_B = j+l*DILATION+B;
-        if(j_l_B < 0)
-            j_l_B = 0;
-        if(j_l_B > SIZE_3(input) - 1)
-            j_l_B = SIZE_3(input) - 1;
-
-        int i_k_A_1 = i+k*DILATION+A+1;
-        if(i_k_A_1 < 0)
-            i_k_A_1 = 0;
-        if(i_k_A_1 > SIZE_2(input) - 1)
-            i_k_A_1 = SIZE_2(input) - 1;
-
-        int j_l_B_1 = j+l*DILATION+B+1;
-        if(j_l_B_1 < 0)
-            j_l_B_1 = 0;
-        if(j_l_B_1 > SIZE_3(input) - 1)
-            j_l_B_1 = SIZE_3(input) - 1;
-
-        dblOutput += w * (
-            VALUE_4(input, intSample, c, i_k_A, j_l_B)*(1-(alpha-(float)A))*(1-(beta-(float)B)) + 
-            VALUE_4(input, intSample, c, i_k_A_1, j_l_B)*(alpha-(float)A)*(1-(beta-(float)B)) + 
-            VALUE_4(input, intSample, c, i_k_A, j_l_B_1)*(1-(alpha-(float)A))*(beta-(float)B) + 
-            VALUE_4(input, intSample, c, i_k_A_1, j_l_B_1)*(alpha-(float)A)*(beta-(float)B)
-            );
-        }
+                dblOutput += w * (
+                    VALUE_4(input, intSample, intDepth, bottom, left)*(1 - alphaTrunc)*(1 - betaTrunc) + 
+                    VALUE_4(input, intSample, intDepth, top, left)*alphaTrunc*(1 - betaTrunc) + 
+                    VALUE_4(input, intSample, intDepth, bottom, right)*(1 - alphaTrunc)*betaTrunc + 
+                    VALUE_4(input, intSample, intDepth, top, right)*alphaTrunc*betaTrunc
+                );
+            }
         }
 
         output[intIndex] = dblOutput;
-    } }
+    } 
+}
 '''
 
 kernel_AdaCoF_updateGradWeight = '''
@@ -292,6 +279,22 @@ def cupy_kernel(strFunction, intFilterSize, intDilation, objectVariables):
 
         strKernel = strKernel.replace(objectMatch.group(0), strTensor + '[' + str.join('+', strIndex) + ']')
     # end
+
+    # purpose: integer clamp a given value to the range [0, upperBound]
+    while True: 
+        objMatch = re.search('(CLAMP)(\()([^\)]*)(\))', strKernel)
+
+        if objMatch is None: 
+            break
+
+        strArgs = objMatch.group(3).split(',')
+        
+        assert (len(strArgs) == 3)
+
+        strValue, strLowerBound, strUpperBound = strArgs
+        strReplacement = f"min(max({strValue}, {strLowerBound}), {strUpperBound})"
+
+        strKernel = strKernel.replace(objMatch.group(0), strReplacement)
 
     strKernel = strKernel.replace('F_SIZE', str(intFilterSize))
     strKernel = strKernel.replace('DILATION', str(intDilation))
