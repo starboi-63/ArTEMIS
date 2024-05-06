@@ -186,9 +186,7 @@ def single_interpolation(args):
 
 
 def main(args):
-    print("Got here 1")
     if args.eval:
-        print("Got here 2")
         single_interpolation(args)
     else:
         test_and_train(args)
