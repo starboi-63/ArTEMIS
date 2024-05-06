@@ -52,7 +52,6 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
     _, _, output_img = output
 
     for sample_num, (gt, output_image, contexts) in enumerate(zip(gt_image, output_img, context_frames)):
-        print(len(contexts))
         # Convert to numpy and scale to 0-255
         gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
         output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
@@ -81,8 +80,6 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
         cv2.imwrite(gt_write_path, gt_image_result)
         cv2.imwrite(output_write_path, output_image_result)
 
-        # Do the same process for the 4 sample frames
-        print("len contexts", len(contexts))
         for i, context in enumerate(contexts):
             print("sample num", sample_num)
             print("i", i)
@@ -116,6 +113,9 @@ class ArTEMISModel(L.LightningModule):
     
     def training_step(self, batch, batch_idx):
         images, gt_image, output_frame_times = batch
+
+        print("images shape", images.shape)
+        
         output = self(images, output_frame_times)
         loss = self.loss(output, gt_image)
 
