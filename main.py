@@ -178,7 +178,11 @@ def single_interpolation(args):
     output_frame_times = torch.tensor([t])
     model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
     model.eval()
-    _, _, out = model.forward(input_images, output_frame_times)
+    _, _, out_batch = model.forward(input_images, output_frame_times)
+    # the image is currently batched, so we need to extract it
+    out_img = out_batch[0]
+    out_name = "output.png"
+    save_image(out_img, out_name, args.eval_output_path)
 
 
 def main(args):
