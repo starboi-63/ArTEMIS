@@ -94,13 +94,13 @@ class ArTEMISModel(L.LightningModule):
         self.validation = eval_metrics
 
 
-    def forward(self, images, output_frame_time):
-        return self.model(images, output_frame_time)
+    def forward(self, images, output_frame_times):
+        return self.model(images, output_frame_times)
 
     
     def training_step(self, batch, batch_idx):
-        images, gt_image, output_frame_time = batch
-        output = self(images, output_frame_time)
+        images, gt_image, output_frame_times = batch
+        output = self(images, output_frame_times)
         loss = self.loss(output, gt_image)
 
         # every collection of batches, save the outputs
@@ -113,8 +113,8 @@ class ArTEMISModel(L.LightningModule):
 
     
     def test_step(self, batch, batch_idx):
-        images, gt_image, output_frame_time = batch
-        output = self.model(images, output_frame_time)
+        images, gt_image, output_frame_times = batch
+        output = self.model(images, output_frame_times)
         loss = self.loss(output, gt_image)
         psnr, ssim = self.validation(output, gt_image)
 

@@ -75,9 +75,9 @@ class ChronoSynth(nn.Module):
             num_features_with_time * num_inputs, num_features_with_time, kernel_size=1, stride=1, batchnorm=False, bias=True)
         self.lrelu = nn.LeakyReLU(0.2)
 
-    def forward(self, features, frames, output_size, output_frame_time):
+    def forward(self, features, frames, output_size, output_frame_times):
         """
-        time_scalar: a value 't' from 0 to 1 that represents the arbitrary time between frames
+        output_frame_times: batch of arbitrary 't' from 0 to 1
         We create the time scalar from the dimensions of the input feature 
         """
         H, W = output_size
@@ -89,14 +89,12 @@ class ChronoSynth(nn.Module):
 
         # Example: goes from -1, 0, 1, 2 for T = 4
         start, end = -T//2 + 1, T//2 + 1
-        print("type of start", type(start))
-        print("type of output frame time", output_frame_time)
         for context_frame_time in range(start, end):
-            time_difference = abs(context_frame_time - output_frame_time)
-            print("type of time diff", type(time_difference))
-            print("time tensor slice shape", time_tensor[:, :, context_frame_time - start, :, :].shape)
-            print("time diff shape", time_difference.shape)
-            time_tensor[:, :, context_frame_time - start, :, :] *= time_difference
+            time_differences = torch.abs(context_frame_time - output_frame_times)
+            print("shape of time_differences: ", time_differences.shape)
+            print("shape of unsqueeze(1): ", time_differences.unsqueeze(1).shape)
+            print("shape of time tensor slice: ", time_tensor[:, :, context_frame_time - start, :, :].shape)
+            time_tensor[:, :, context_frame_time - start, :, :] *= time_differences.unsqueeze(1)
 
         # Concatenate the time tensor to the channel dimension of the features
         features = torch.cat([features, time_tensor], 1)
