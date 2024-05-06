@@ -95,7 +95,6 @@ class ChronoSynth(nn.Module):
         start, end = -T//2 + 1, T//2 + 1
         for i in range(start, end):
             time_differences = torch.abs(context_frame_times[i] - output_frame_times)
-            print("absolute time diff for context frame ", i, ": ", context_frame_times[i])
             time_tensor[:, :, i - start, :, :] *= time_differences.view(B, 1, 1, 1)
         # -------------------------------------------------------------------------------------------
 
