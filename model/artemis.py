@@ -41,8 +41,6 @@ class ArTEMIS(nn.Module):
         self.smooth2 = SmoothNet(num_features[2]*growth, num_features_out)
         self.smooth3 = SmoothNet(num_features[3]*growth, num_features_out)
 
-        num_features_plus_time = num_features_out + 1
-
         self.predict1 = ChronoSynth(
             num_inputs, num_features_out, kernel_size, dilation, apply_softmax=True)
         self.predict2 = ChronoSynth(
