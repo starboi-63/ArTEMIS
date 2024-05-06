@@ -40,7 +40,7 @@ if args.dataset == "vimeo90K_septuplet":
     test_loader = get_loader('test', args.data_root, args.test_batch_size, shuffle=False, num_workers=args.num_workers)
     t2 = time.time()
 else:
-    raise NotImplementedError
+    print("Custom Dataset Detected")
 
 
 def save_image(image, name, path):
