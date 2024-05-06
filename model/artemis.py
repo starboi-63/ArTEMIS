@@ -9,6 +9,7 @@ class ArTEMIS(nn.Module):
     def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
         super().__init__()
 
+        # TODO: Change num_features to [512, 256, 128, 64] if we want to scale up model 
         num_features = [192, 128, 64, 32]
         # For Sep-STS (Separated-Spatio-Temporal-SWIN) Encoder
         spatial_window_sizes = [(1, 8, 8), (1, 8, 8), (1, 8, 8), (1, 8, 8)]
