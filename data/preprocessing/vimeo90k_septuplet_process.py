@@ -74,12 +74,6 @@ class VimeoSeptuplet(Dataset):
             if random.random() >= 0.5:
                 images = images[::-1]
                 imgpaths = imgpaths[::-1]
-                
-            # gt = images[len(images) // 2]
-            # images = images[:len(images) // 2] + images[len(images) // 2 + 1:]
-
-            # gt = Ground Truth --> contains ground-truth versions that generated images will be compared with
-            # ground_truth = images[2:5]
 
             # Randomly select a ground truth frame 
             random_index = random.randint(2, 4)
@@ -93,15 +87,10 @@ class VimeoSeptuplet(Dataset):
         else:
             images = [self.transforms(img_) for img_ in images]
 
-            # ground_truth = images[2:5]
-
             # Randomly select a ground truth frame 
             random_index = random.randint(2, 4)
             ground_truth = images[random_index]
             context = images[:2] + images[5:]
-
-            # maybe a concern for testing output/seeing image path
-            # imgpath = '_'.join(imgpath.split('/')[-2:])
 
             return context, ground_truth
 
