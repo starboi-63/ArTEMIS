@@ -177,7 +177,7 @@ def single_interpolation(args):
     t = args.time_step
     input_image_paths = [args.f1_path, args.f2_path, args.f3_path, args.f4_path]
     input_images = [torch.unsqueeze(img_transforms(Image.open(path)), 0).to(device) for path in input_image_paths]
-    output_frame_times = torch.tensor([t])
+    output_frame_times = torch.tensor([t]).to(device)
     model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
     model.eval()
     _, _, out_batch = model.forward(input_images, output_frame_times)
