@@ -71,10 +71,10 @@ class ChronoSynth(nn.Module):
         self.ModuleWeight = Subnet_weight(kernel_size ** 2)
         self.ModuleAlpha = Subnet_offset(kernel_size ** 2)
         self.ModuleBeta = Subnet_offset(kernel_size ** 2)
-        self.moduleOcclusion = Subnet_occlusion()
+        self.ModuleOcclusion = Subnet_occlusion()
 
         self.feature_fuse = Conv_2d(
-            num_features * num_inputs, num_features, kernel_size=1, stride=1, batchnorm=False, bias=True)
+            num_features_with_time * num_inputs, num_features_with_time, kernel_size=1, stride=1, batchnorm=False, bias=True)
         self.lrelu = nn.LeakyReLU(0.2)
 
     def forward(self, features, frames, output_size, output_frame_time):
@@ -95,17 +95,11 @@ class ChronoSynth(nn.Module):
             time_difference = abs(context_frame_time - output_frame_time)
             time_tensor[:, :, context_frame_time - start, :, :] *= time_difference
 
-        print("time tensor after", time_tensor)
-
-        occ = torch.cat(torch.unbind(features, 1), 1)
-        occ = self.lrelu(self.feature_fuse(occ))
-        print("occy way dimensions after unbinding", occ.shape)
-
         # Concatenate the time tensor to the channel dimension of the features
         features = torch.cat([features, time_tensor], 1)
-        occ = torch.cat([occ, time_tensor], 1)
+        occ = torch.cat(torch.unbind(features, 1), 1)
+        occ = self.lrelu(self.feature_fuse(occ))
 
-        occlusion = self.moduleOcclusion(occ, (H, W)) 
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
         features = features.transpose(1, 2).reshape(B*T, C + 1, cur_H, cur_W)
@@ -113,6 +107,7 @@ class ChronoSynth(nn.Module):
         weights = self.ModuleWeight(features, (H, W)).view(B, T, -1, H, W)
         alphas = self.ModuleAlpha(features, (H, W)).view(B, T, -1, H, W)
         betas = self.ModuleBeta(features, (H, W)).view(B, T, -1, H, W)
+        occlusion = self.ModuleOcclusion(occ, (H, W)) 
 
         warp = []
         for i in range(self.num_inputs):
