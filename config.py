@@ -24,6 +24,16 @@ model_arg.add_argument("--kernel_size", type=int, default=5)
 model_arg.add_argument("--dilation", type=int, default=1)
 model_arg.add_argument("--num_outputs", type=int, default=3)
 
+#  Evaluation Parameters
+eval_arg = add_argument_group("Evaluation")
+eval_arg.add_argument("--eval", action=argparse.BooleanOptionalAction, help="Run the model in evaluation mode.")
+eval_arg.add_argument("--f0_path", type=str, help="Input Frame 0 path.")
+eval_arg.add_argument("--f1_path", type=str, help="Input Frame 1 path.")
+eval_arg.add_argument("--f2_path", type=str, help="Input Frame 2 path.")
+eval_arg.add_argument("--f3_path", type=str, help="Input Frame 3 path.")
+eval_arg.add_argument("--time_step", type=float, default=0.5, help ="Arbitrary time step from 0-1.")
+eval_arg.add_argument("--parameter_path", type=str, help="Path to the evaluation (best) parameters")
+
 # Training / test parameters
 learn_arg = add_argument_group("Learning")
 learn_arg.add_argument("--loss", type=str, default="1*L1")
