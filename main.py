@@ -91,19 +91,19 @@ class ArTEMISModel(L.LightningModule):
         self.save_hyperparameters()
         # Initialize instance variables
         self.args = args
-        self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation, num_outputs=args.num_outputs)
+        self.model = ArTEMIS(num_inputs=args.nbr_frame, joinType=args.joinType, kernel_size=args.kernel_size, dilation=args.dilation)
         self.optimizer = Adamax(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
         self.loss = Loss(args)
         self.validation = eval_metrics
 
 
-    def forward(self, images):
-        return self.model(images)
+    def forward(self, images, output_frame_time):
+        return self.model(images, output_frame_time)
 
     
     def training_step(self, batch, batch_idx):
-        images, gt_image = batch
-        output = self(images)
+        images, gt_image, output_frame_time = batch
+        output = self(images, output_frame_time)
         loss = self.loss(output, gt_image)
 
         # every collection of batches, save the outputs
@@ -116,8 +116,8 @@ class ArTEMISModel(L.LightningModule):
 
     
     def test_step(self, batch, batch_idx):
-        images, gt_image = batch
-        output = self.model(images)
+        images, gt_image, output_frame_time = batch
+        output = self.model(images, output_frame_time)
         loss = self.loss(output, gt_image)
         psnr, ssim = self.validation(output, gt_image)
 
@@ -129,9 +129,9 @@ class ArTEMISModel(L.LightningModule):
         training_schedule = [40, 60, 75, 85, 95, 100]
         return {
             "optimizer": self.optimizer,
-            # "lr_scheduler": {
-            #     "scheduler": MultiStepLR(optimizer = self.optimizer, milestones = training_schedule, gamma = 0.5),
-            # }
+            "lr_scheduler": {
+                "scheduler": MultiStepLR(optimizer = self.optimizer, milestones = training_schedule, gamma = 0.5),
+            }
         }
     
 
