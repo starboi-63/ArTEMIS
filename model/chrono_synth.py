@@ -90,14 +90,13 @@ class ChronoSynth(nn.Module):
         # NOTE: For training, since we are using the septuplet dataset, our frame times are -0.25, 0, 1, 1.25
 
         # -------------------------------------------------------------------------------------------
-        frame_times = [-0.25, 0, 1, 1.25]
+        context_frame_times = [-0.25, 0, 1, 1.25]
         # Example: goes from -1, 0, 1, 2 for T = 4
         start, end = -T//2 + 1, T//2 + 1
         for i in range(start, end):
-            context_frame_time = frame_times[i]
-            time_differences = torch.abs(context_frame_time - output_frame_times)
-            print("absolute time diff for context frame ", i, ": ", context_frame_time)
-            time_tensor[:, :, context_frame_time - start, :, :] *= time_differences.view(B, 1, 1, 1)
+            time_differences = torch.abs(context_frame_times[i] - output_frame_times)
+            print("absolute time diff for context frame ", i, ": ", context_frame_times[i])
+            time_tensor[:, :, i - start, :, :] *= time_differences.view(B, 1, 1, 1)
         # -------------------------------------------------------------------------------------------
 
 
