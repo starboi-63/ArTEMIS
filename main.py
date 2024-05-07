@@ -215,8 +215,7 @@ def save_video(frames, output_path, frame_rate):
     # Convert each frame to a numpy array and write it to the video file
     with tqdm(total=len(frames), desc="Saving video") as pbar:
         for frame in frames:
-            frame = frame
-            frame = frame.permute(1, 2, 0).cpu().numpy() * 255.0
+            frame = frame.squeeze().permute(1, 2, 0).cpu().numpy() * 255.0
             frame = frame.astype(np.uint8)
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             out.write(frame)
