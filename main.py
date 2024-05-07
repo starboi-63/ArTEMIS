@@ -115,8 +115,6 @@ class ArTEMISModel(L.LightningModule):
         images, gt_image, output_frame_times = batch
 
         output = self(images, output_frame_times)
-        print("output shape", output[0].shape)
-        print("gt_image shape", gt_image[0].shape)
         loss = self.loss(output, gt_image)
 
         # every collection of batches, save the outputs
@@ -132,8 +130,6 @@ class ArTEMISModel(L.LightningModule):
         images, gt_image, output_frame_times = batch
         output = self.model(images, output_frame_times)
         loss = self.loss(output, gt_image)
-        print("output shape", output[0].shape)
-        print("gt_image shape", gt_image[0].shape)
         psnr, ssim = self.validation(output, gt_image)
 
         # log metrics for each step
@@ -158,14 +154,15 @@ def test_and_train(args):
     model = ArTEMISModel(args)
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint)
 
+    # Test the model with Lightning
+    trainer.test(model, test_loader)
+
     # Train with Lightning: Load from checkpoint if specified
     if args.use_checkpoint:
         trainer.fit(model, train_loader, ckpt_path=args.checkpoint_dir)
     else:
         trainer.fit(model, train_loader)
 
-    # Test the model with Lightning
-    trainer.test(model, test_loader)
 
 
 def read_video(video_path):
