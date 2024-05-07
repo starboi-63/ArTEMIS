@@ -8,4 +8,4 @@ einops
 tensorboard
 lightning
 opencv-python
-
+tqdm
