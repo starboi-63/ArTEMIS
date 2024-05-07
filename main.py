@@ -58,7 +58,7 @@ def save_image(image, name, path):
     cv2.imwrite(os.path.join(path, name), image)
 
 
-def save_images(output, gt_image, batch_index, context_frames, epoch_index):
+def save_images(output, gt_image, batch_index, context_frames, epoch_index=None, testing=False):
     """
     Given an output and ground truth, save them all locally along with context frames
     outputs are, like always, a triple of ll, l, and output
@@ -71,12 +71,20 @@ def save_images(output, gt_image, batch_index, context_frames, epoch_index):
 
     for sample_num, (gt, output_image, contexts) in enumerate(zip(gt_image, output_img, context_frames)):
         # Create image names
-        gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
-        output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
+        if testing:
+            gt_image_name = f"gt_batch{batch_index}_sample{sample_num}_testset.png"
+            output_image_name = f"pred_batch{batch_index}_sample{sample_num}_testset.png"
+        else:
+            gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
+            output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
 
         # Create directories for each epoch, batch, sample, and frame
-        gt_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
-        output_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
+        if testing:
+            gt_write_path = os.path.join(args.output_dir, f"test_set", f"batch_{batch_index}", f"sample_{sample_num}")
+            output_write_path = os.path.join(args.output_dir, f"test_set", f"batch_{batch_index}", f"sample_{sample_num}")
+        else:
+            gt_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
+            output_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
 
         # Save the ground-truth and prediction images
         save_image(gt, gt_image_name, gt_write_path)
@@ -84,8 +92,13 @@ def save_images(output, gt_image, batch_index, context_frames, epoch_index):
 
         # Save the context frames
         for i, context in enumerate(contexts):
-            context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
-            context_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
+            if testing:
+                context_image_name = f"context_batch{batch_index}_sample{sample_num}_frame{i}_testset.png"
+                context_write_path = os.path.join(args.output_dir, f"test_set", f"batch_{batch_index}", f"sample_{sample_num}")
+            else:
+                context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
+                context_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
+            
             save_image(context, context_image_name, context_write_path)
 
 
@@ -134,6 +147,11 @@ class ArTEMISModel(L.LightningModule):
 
         # log metrics for each step
         self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
+
+        if batch_idx % args.log_iter == 0:
+            save_images(output, gt_image, batch_index = batch_idx, context_frames=images, testing=True)
+        
+        # return metrics dictionary
         return {'loss': loss, 'psnr': psnr, 'ssim': ssim}
         
     
@@ -156,14 +174,14 @@ def test_and_train(args):
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint)
 
     # Test the model with Lightning
-    trainer.test(model, test_loader)
+
+    trainer.test(model, test_loader, ckpt_path=args.checkpoint_dir)
 
     # Train with Lightning: Load from checkpoint if specified
     if args.use_checkpoint:
         trainer.fit(model, train_loader, ckpt_path=args.checkpoint_dir)
     else:
         trainer.fit(model, train_loader)
-
 
 
 def read_video(video_path):
