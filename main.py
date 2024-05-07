@@ -17,6 +17,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 from loss import Loss
 from metrics import eval_metrics
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
+from tqdm import tqdm
 
 
 # Parse command line arguments
@@ -171,11 +172,6 @@ def read_video(video_path):
     - video_frames: a list of tensors, each of shape (1, 3, 256, 256)
     - frame_rate: the frame rate of the video
     """
-    # Define the transform to apply to each frame
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-
     # Load the video file
     capture = cv2.VideoCapture(video_path)
    
@@ -186,19 +182,21 @@ def read_video(video_path):
     video_frames = []
 
     # Read the video frame by frame
-    while True:
-        ret, frame = capture.read()
+    total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    with tqdm(total=total_frames, desc="Reading video") as pbar:
+        while True:
+            ret, frame = capture.read()
 
-        if not ret:
-            break 
+            if not ret:
+                break
 
-        # Convert the frame to RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # Convert the numpy array to a PIL image
-        frame = Image.fromarray(frame)
-        # Add transforms and a batch dimension to the frame
-        frame = transform(frame).unsqueeze(0)
-        video_frames.append(frame)
+            # Convert the frame to RGB, normalize its values, and add it to the list
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = Image.fromarray(frame)
+            transform = transforms.Compose([transforms.ToTensor()])
+            frame = transform(frame).unsqueeze(0)
+            video_frames.append(frame)
+            pbar.update(1)
 
     # Release the video capture object
     capture.release()
@@ -215,13 +213,13 @@ def save_video(frames, output_path, frame_rate):
     out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
 
     # Convert each frame to a numpy array and write it to the video file
-    for frame in frames:
-        # Convert the frame to a numpy array
-        frame = frame.permute(1, 2, 0).cpu().numpy() * 255.0
-        frame = frame.astype(np.uint8)
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        # Write the frame to the video file
-        out.write(frame)
+    with tqdm(total=len(frames), desc="Saving video") as pbar:
+        for frame in frames:
+            frame = frame.permute(1, 2, 0).cpu().numpy() * 255.0
+            frame = frame.astype(np.uint8)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            out.write(frame)
+            pbar.update(1)
 
     # Release the VideoWriter object
     out.release()
@@ -254,17 +252,18 @@ def video_interpolation(args):
     interpolated_frames = []
     
     # Iterate through every window of 4 frames
-    for i in range(len(input_frames) - 3):
-        # Extract the 4 frames and set the interpolated frame time to 0.5
-        context_frames = input_frames[i:i+4]
-        interpolated_frame_time = torch.tensor([0.5]).to(device)
+    with tqdm(range(len(input_frames) - 3), desc="Interpolating frames") as pbar:
+        for i in pbar:
+            # Extract the 4 frames and set the interpolated frame time to 0.5
+            context_frames = input_frames[i:i+4]
+            interpolated_frame_time = torch.tensor([0.5]).to(device)
 
-        # Interpolate in the exact center of the 4 frames
-        with torch.no_grad():
-            _, _, out_batch = model(context_frames, interpolated_frame_time)
+            # Interpolate in the exact center of the 4 frames
+            with torch.no_grad():
+                _, _, out_batch = model(context_frames, interpolated_frame_time)
 
-        # Extract the output frame
-        interpolated_frames.append(out_batch[0])
+            # Extract the output frame
+            interpolated_frames.append(out_batch[0])
 
     # Remove the first and last frames from the input
     input_frames = input_frames[1:-1]
