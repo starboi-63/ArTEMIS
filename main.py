@@ -210,7 +210,7 @@ def save_video(frames, output_path, frame_rate):
     # Define the codec and create a VideoWriter object
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     print("frames shape 0", frames[0].shape)
-    size = (frames[0].shape[2], frames[0].shape[1])
+    size = (frames[0].shape[3], frames[0].shape[2])
     print("size", size)
     out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
 
