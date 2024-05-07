@@ -134,6 +134,8 @@ class ArTEMISModel(L.LightningModule):
 
         # log metrics for each step
         self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
+        if batch_idx % args.log_iter == 0:
+            print(f"Test Loss: {loss}, PSNR: {psnr}, SSIM: {ssim}")
         return {'loss': loss, 'psnr': psnr, 'ssim': ssim}
         
     
