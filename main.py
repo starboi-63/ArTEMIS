@@ -283,6 +283,7 @@ def video_interpolation(args):
     print("Output frames: ", len(output_frames))
 
     # Save the output frames to a video file
+    print("frame dim", output_frames[0].shape)
     save_video(output_frames, args.save_path, input_frame_rate * 2)
     print("Saved video to: ", args.save_path)
 
