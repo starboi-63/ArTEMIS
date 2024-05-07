@@ -208,7 +208,7 @@ def save_video(frames, output_path, frame_rate):
     Save a list of frames to a video file
     """
     # Define the codec and create a VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'X264')
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     size = (frames[0].shape[2], frames[0].shape[1])
     out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
 
