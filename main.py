@@ -211,15 +211,15 @@ def save_video(frames, output_path, frame_rate):
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     print("frames shape 0", frames[0].shape)
     size = (frames[0].shape[2], frames[0].shape[1])
-    print("frames shape 1", frames[0].shape)
+    print("size", size)
     out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
 
     # Convert each frame to a numpy array and write it to the video file
     with tqdm(total=len(frames), desc="Saving video") as pbar:
         for frame in frames:
-            frame = frame.squeeze().permute(1, 2, 0).cpu().numpy() * 255.0
+            frame = frame.squeeze().permute(2, 1, 0).cpu().numpy() * 255.0
             frame = frame.astype(np.uint8)
-            print("frames shape 3", frame.shape)
+            print("frame shape within loop", frame.shape)
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             out.write(frame)
             pbar.update(1)
