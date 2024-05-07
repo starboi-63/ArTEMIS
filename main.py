@@ -134,8 +134,6 @@ class ArTEMISModel(L.LightningModule):
 
         # log metrics for each step
         self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
-        if batch_idx % args.log_iter == 0:
-            print(f"Test Loss: {loss}, PSNR: {psnr}, SSIM: {ssim}")
         return {'loss': loss, 'psnr': psnr, 'ssim': ssim}
         
     
@@ -213,9 +211,7 @@ def save_video(frames, output_path, frame_rate):
     """
     # Define the codec and create a VideoWriter object
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    print("frames shape 0", frames[0].shape)
     size = (frames[0].shape[3], frames[0].shape[2])
-    print("size", size)
     out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
 
     # Convert each frame to a numpy array and write it to the video file
@@ -223,7 +219,6 @@ def save_video(frames, output_path, frame_rate):
         for frame in frames:
             frame = frame.squeeze().permute(1, 2, 0).cpu().numpy() * 255.0
             frame = frame.astype(np.uint8)
-            print("frame shape within loop", frame.shape)
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             out.write(frame)
             pbar.update(1)
@@ -239,16 +234,11 @@ def video_interpolation(args):
     """
     # Read the video file and send it to the GPU
     device = torch.device('cuda' if args.cuda else 'cpu')
-    print("args input path", args.input_path)
     input_frames, input_frame_rate = read_video(args.input_path)
     input_frames = [frame.to(device) for frame in input_frames]
-
-    print("Input frames: ", len(input_frames))
     
     # Duplicate the first and last input frames
     input_frames = [input_frames[0]] + input_frames + [input_frames[-1]]
-
-    print("Input frames post duplication: ", len(input_frames))
 
     # Load the pre-trained model
     model = ArTEMISModel.load_from_checkpoint(args.model_path)
@@ -275,9 +265,6 @@ def video_interpolation(args):
     # Remove the first and last frames from the input
     input_frames = input_frames[1:-1]
 
-    print("Input frames post removal: ", len(input_frames))
-    print("Interpolated frames: ", len(interpolated_frames))
-
     # Alternate between the input and output frames
     output_frames = []
 
@@ -286,8 +273,6 @@ def video_interpolation(args):
         output_frames.append(interpolated_frames[i])
     
     interpolated_frames.append(input_frames[-1])
-
-    print("Output frames: ", len(output_frames))
 
     # Save the output frames to a video file
     save_video(output_frames, args.save_path, input_frame_rate * 2)
