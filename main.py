@@ -173,9 +173,12 @@ def test_and_train(args):
     model = ArTEMISModel(args)
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint)
 
-    # Test the model with Lightning
-
-    trainer.test(model, test_loader, ckpt_path=args.checkpoint_dir)
+    # Test with Lightning: Load from checkpoint if specified
+    if args.test:
+        if args.use_checkpoint:
+            trainer.test(model, test_loader, ckpt_path=args.checkpoint_dir)
+        else:
+            trainer.test(model, test_loader)
 
     # Train with Lightning: Load from checkpoint if specified
     if args.use_checkpoint:

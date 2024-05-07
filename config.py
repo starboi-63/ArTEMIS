@@ -24,15 +24,16 @@ model_arg.add_argument("--kernel_size", type=int, default=5)
 model_arg.add_argument("--dilation", type=int, default=1)
 model_arg.add_argument("--num_outputs", type=int, default=3)
 
-#  Evaluation Parameters
+# Evaluation Parameters
 eval_arg = add_argument_group("Evaluation")
 eval_arg.add_argument("--interpolate", action=argparse.BooleanOptionalAction, help="Run the model on custom inputs.")
 eval_arg.add_argument("--time_step", type=float, default=0.5, help ="Arbitrary time step from 0-1.")
 eval_arg.add_argument("--model_path", type=str, help="Path to the pretrained model parameters.")
 eval_arg.add_argument("--input_path", type=str, help="Path to the input video that will be interpolated.")
 eval_arg.add_argument("--save_path", type=str, help="Path to save the interpolated video output.")
+eval_arg.add_argument("--test", action=argparse.BooleanOptionalAction, help="Run the model on the test set initially to calculate PSNR and SSIM.")
 
-# Training / test parameters
+# Training parameters
 learn_arg = add_argument_group("Learning")
 learn_arg.add_argument("--lr", type=float, default=2e-4)
 learn_arg.add_argument("--beta1", type=float, default=0.9)
