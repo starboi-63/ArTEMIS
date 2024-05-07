@@ -130,6 +130,8 @@ class ArTEMISModel(L.LightningModule):
         images, gt_image, output_frame_times = batch
         output = self.model(images, output_frame_times)
         loss = self.loss(output, gt_image)
+        print("output shape", output[0].shape)
+        print("gt_image shape", gt_image[0].shape)
         psnr, ssim = self.validation(output, gt_image)
 
         # log metrics for each step
