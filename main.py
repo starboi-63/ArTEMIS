@@ -187,6 +187,130 @@ def single_interpolation(args):
     save_image(out_img, out_name, args.eval_output_path)
 
 
+def read_video(video_path):
+    """
+    Read a video file and return a numpy array of individual frames
+    
+    Returns:
+    - video_frames: a list of tensors, each of shape (1, 3, 256, 256)
+    - frame_rate: the frame rate of the video
+    """
+    # Define the transform to apply to each frame
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    # Load the video file
+    capture = cv2.VideoCapture(args.video_path)
+   
+    if not capture.isOpened():
+        raise Exception("Error opening video file")
+    
+    frame_rate = capture.get(cv2.CAP_PROP_FPS)
+    video_frames = []
+
+    # Read the video frame by frame
+    while True:
+        ret, frame = capture.read()
+
+        if not ret:
+            break 
+
+        # Convert the frame to RGB
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Convert the numpy array to a PIL image
+        frame = Image.fromarray(frame)
+        # Add transforms and a batch dimension to the frame
+        frame = transform(frame).unsqueeze(0)
+        video_frames.append(frame)
+
+    # Release the video capture object
+    capture.release()
+    return video_frames, frame_rate
+
+
+def save_video(frames, output_path, frame_rate):
+    """
+    Save a list of frames to a video file
+    """
+    # Define the codec and create a VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    size = (frames[0].shape[2], frames[0].shape[1])
+    out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
+
+    # Convert each frame to a numpy array and write it to the video file
+    for frame in frames:
+        # Convert the frame to a numpy array
+        frame = frame.permute(1, 2, 0).cpu().numpy() * 255.0
+        frame = frame.astype(np.uint8)
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # Write the frame to the video file
+        out.write(frame)
+
+    # Release the VideoWriter object
+    out.release()
+
+
+def video_interpolation(args):
+    """
+    Run an interpolation on a video of frames: 
+    By default, generates a frame between each pair of input frames
+    """
+    # Read the video file and send it to the GPU
+    device = torch.device('cuda' if args.cuda else 'cpu')
+    input_frames, input_frame_rate = read_video(args.video_path)
+    input_frames = [frame.to(device) for frame in input_frames]
+
+    print("Input frames: ", len(input_frames))
+    
+    # Duplicate the first and last input frames
+    input_frames = [input_frames[0]] + input_frames + [input_frames[-1]]
+
+    print("Input frames post duplication: ", len(input_frames))
+
+    # Load the pre-trained model
+    model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
+    model.to(device)
+    model.eval()
+
+    # Initialize a list to store interpolated frames
+    interpolated_frames = []
+    
+    # Iterate through every window of 4 frames
+    for i in range(len(input_frames) - 3):
+        # Extract the 4 frames and set the interpolated frame time to 0.5
+        context_frames = input_frames[i:i+4]
+        interpolated_frame_time = torch.tensor([0.5]).to(device)
+
+        # Interpolate in the exact center of the 4 frames
+        with torch.no_grad():
+            _, _, out_batch = model(context_frames, interpolated_frame_time)
+
+        # Extract the output frame
+        interpolated_frames.append(out_batch[0])
+
+    # Remove the first and last frames from the input
+    input_frames = input_frames[1:-1]
+
+    print("Input frames post removal: ", len(input_frames))
+    print("Interpolated frames: ", len(interpolated_frames))
+
+    # Alternate between the input and output frames
+    output_frames = []
+
+    for i in range(len(interpolated_frames)):
+        output_frames.append(input_frames[i])
+        output_frames.append(interpolated_frames[i])
+    
+    interpolated_frames.append(input_frames[-1])
+
+    print("Output frames: ", len(output_frames))
+
+    # Save the output frames to a video file
+    save_video(output_frames, args.output_path, input_frame_rate * 2)
+    print("Saved video to: ", args.output_path)
+
+
 def main(args):
     if args.eval:
         single_interpolation(args)
