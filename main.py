@@ -115,6 +115,8 @@ class ArTEMISModel(L.LightningModule):
         images, gt_image, output_frame_times = batch
 
         output = self(images, output_frame_times)
+        print("output shape", output[0].shape)
+        print("gt_image shape", gt_image[0].shape)
         loss = self.loss(output, gt_image)
 
         # every collection of batches, save the outputs
