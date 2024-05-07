@@ -163,30 +163,6 @@ def test_and_train(args):
     trainer.test(model, test_loader)
 
 
-def single_interpolation(args):
-    """
-    Run an interpolation on a single input of 4 frames: 
-    Produces a single output frame at an arbitrary time step
-    """
-    img_transforms = transforms.Compose([
-        transforms.ToTensor()
-    ])
-
-    device = torch.device('cuda' if args.cuda else 'cpu')
-
-    t = args.time_step
-    input_image_paths = [args.f1_path, args.f2_path, args.f3_path, args.f4_path]
-    input_images = [torch.unsqueeze(img_transforms(Image.open(path)), 0).to(device) for path in input_image_paths]
-    output_frame_times = torch.tensor([t]).to(device)
-    model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
-    model.eval()
-    _, _, out_batch = model.forward(input_images, output_frame_times)
-    # the image is currently batched, so we need to extract it
-    out_img = out_batch[0]
-    out_name = "output.png"
-    save_image(out_img, out_name, args.eval_output_path)
-
-
 def read_video(video_path):
     """
     Read a video file and return a numpy array of individual frames
@@ -201,7 +177,7 @@ def read_video(video_path):
     ])
 
     # Load the video file
-    capture = cv2.VideoCapture(args.video_path)
+    capture = cv2.VideoCapture(video_path)
    
     if not capture.isOpened():
         raise Exception("Error opening video file")
@@ -258,7 +234,7 @@ def video_interpolation(args):
     """
     # Read the video file and send it to the GPU
     device = torch.device('cuda' if args.cuda else 'cpu')
-    input_frames, input_frame_rate = read_video(args.video_path)
+    input_frames, input_frame_rate = read_video(args.input_path)
     input_frames = [frame.to(device) for frame in input_frames]
 
     print("Input frames: ", len(input_frames))
@@ -269,7 +245,7 @@ def video_interpolation(args):
     print("Input frames post duplication: ", len(input_frames))
 
     # Load the pre-trained model
-    model = ArTEMISModel.load_from_checkpoint(args.parameter_path)
+    model = ArTEMISModel.load_from_checkpoint(args.model_path)
     model.to(device)
     model.eval()
 
@@ -307,13 +283,13 @@ def video_interpolation(args):
     print("Output frames: ", len(output_frames))
 
     # Save the output frames to a video file
-    save_video(output_frames, args.output_path, input_frame_rate * 2)
-    print("Saved video to: ", args.output_path)
+    save_video(output_frames, args.save_path, input_frame_rate * 2)
+    print("Saved video to: ", args.save_path)
 
 
 def main(args):
-    if args.eval:
-        single_interpolation(args)
+    if args.interpolate:
+        video_interpolation(args)
     else:
         test_and_train(args)
 
