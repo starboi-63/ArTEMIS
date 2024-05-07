@@ -28,8 +28,6 @@ def eval_metrics(output, gt_image):
 
     PSNR should be calculated for each image, since sum(log) =/= log(sum).
     """
-    print("output shape", output.shape)
-    print("gt_image shape", gt_image.shape)
     total_psnr, total_ssim = 0, 0
 
     batch_size = gt_image.size(0)
