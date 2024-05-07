@@ -234,6 +234,7 @@ def video_interpolation(args):
     """
     # Read the video file and send it to the GPU
     device = torch.device('cuda' if args.cuda else 'cpu')
+    print("args input path", args.input_path)
     input_frames, input_frame_rate = read_video(args.input_path)
     input_frames = [frame.to(device) for frame in input_frames]
 
