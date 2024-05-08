@@ -24,19 +24,17 @@ model_arg.add_argument("--kernel_size", type=int, default=5)
 model_arg.add_argument("--dilation", type=int, default=1)
 model_arg.add_argument("--num_outputs", type=int, default=3)
 
-#  Evaluation Parameters
+# Evaluation Parameters
 eval_arg = add_argument_group("Evaluation")
-eval_arg.add_argument("--eval", action=argparse.BooleanOptionalAction, help="Run the model in evaluation mode.")
-eval_arg.add_argument("--f0_path", type=str, help="Input Frame 0 path.")
-eval_arg.add_argument("--f1_path", type=str, help="Input Frame 1 path.")
-eval_arg.add_argument("--f2_path", type=str, help="Input Frame 2 path.")
-eval_arg.add_argument("--f3_path", type=str, help="Input Frame 3 path.")
+eval_arg.add_argument("--interpolate", action=argparse.BooleanOptionalAction, help="Run the model on custom inputs.")
 eval_arg.add_argument("--time_step", type=float, default=0.5, help ="Arbitrary time step from 0-1.")
-eval_arg.add_argument("--parameter_path", type=str, help="Path to the evaluation (best) parameters")
+eval_arg.add_argument("--model_path", type=str, help="Path to the pretrained model parameters.")
+eval_arg.add_argument("--input_path", type=str, help="Path to the input video that will be interpolated.")
+eval_arg.add_argument("--save_path", type=str, help="Path to save the interpolated video output.")
+eval_arg.add_argument("--test", action=argparse.BooleanOptionalAction, help="Run the model on the test set initially to calculate PSNR and SSIM.")
 
-# Training / test parameters
+# Training parameters
 learn_arg = add_argument_group("Learning")
-learn_arg.add_argument("--loss", type=str, default="1*L1")
 learn_arg.add_argument("--lr", type=float, default=2e-4)
 learn_arg.add_argument("--beta1", type=float, default=0.9)
 learn_arg.add_argument("--beta2", type=float, default=0.999)
@@ -44,9 +42,6 @@ learn_arg.add_argument("--batch_size", type=int, default=4)
 learn_arg.add_argument("--test_batch_size", type=int, default=12)
 learn_arg.add_argument("--start_epoch", type=int, default=0)
 learn_arg.add_argument("--max_epoch", type=int, default=100)
-learn_arg.add_argument("--resume", action="store_true")
-learn_arg.add_argument("--resume_exp", type=str, default=None)
-learn_arg.add_argument("--pretrained", type=str, help="Load from a pretrained model.")
 
 # Directories
 dir_arg = add_argument_group("Directories")
@@ -59,12 +54,10 @@ dir_arg.add_argument("--output_dir", type=str, default=os.path.join(os.getcwd(),
     
 # Miscellaneous
 misc_arg = add_argument_group("Miscellaneous")
-misc_arg.add_argument("--exp_name", type=str, default="exp")
 misc_arg.add_argument("--log_iter", type=int, default=100)
 misc_arg.add_argument("--num_gpu", type=int, default=1)
 misc_arg.add_argument("--random_seed", type=int, default=103)
 misc_arg.add_argument("--num_workers", type=int, default=12)
-misc_arg.add_argument("--val_freq", type=int, default=1)
 
 
 def get_args():

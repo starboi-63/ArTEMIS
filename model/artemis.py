@@ -10,8 +10,8 @@ class ArTEMIS(nn.Module):
         super().__init__()
 
         # TODO: Change num_features to [512, 256, 128, 64] if we want to scale up model 
-        # num_features = [192, 128, 64, 32]
-        num_features = [512, 256, 128, 64]
+        # num_features = [192, 128, 64, 32] # For small model with ~7 million parameters
+        num_features = [512, 256, 128, 64] # For large model with ~30 million parameters
         # For Sep-STS (Separated-Spatio-Temporal-SWIN) Encoder
         spatial_window_sizes = [(1, 8, 8), (1, 8, 8), (1, 8, 8), (1, 8, 8)]
         num_heads = [2, 4, 8, 16]  # For Multi-Head Attention

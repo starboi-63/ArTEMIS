@@ -5,18 +5,19 @@ import os
 import cv2
 import numpy as np
 
-# from PIL import Image
+from PIL import Image
 import lightning as L
 import torch
+from torchvision import transforms
 
 from lightning.pytorch.loggers import TensorBoardLogger
 from model.artemis import ArTEMIS
 from torch.optim import Adamax
 from torch.optim.lr_scheduler import MultiStepLR
-# from loss import Loss
 from loss import Loss
 from metrics import eval_metrics
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
+from tqdm import tqdm
 
 
 # Parse command line arguments
@@ -40,14 +41,27 @@ if args.dataset == "vimeo90K_septuplet":
     test_loader = get_loader('test', args.data_root, args.test_batch_size, shuffle=False, num_workers=args.num_workers)
     t2 = time.time()
 else:
-    raise NotImplementedError
+    print("Custom Dataset Detected")
 
 
-def save_image(output, gt_image, batch_index, context_frames, epoch_index):
+def save_image(image, name, path):
+    """
+    Save an image to disk
+    """
+    # Convert to numpy and scale to 0-255
+    image = image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
+    # Convert to BGR for OpenCV
+    image = cv2.cvtColor(image.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
+    # Create directory if it doesn't exist
+    os.makedirs(path, exist_ok=True)
+    # Write image to disk
+    cv2.imwrite(os.path.join(path, name), image)
+
+
+def save_images(output, gt_image, batch_index, context_frames, epoch_index=None, testing=False):
     """
     Given an output and ground truth, save them all locally along with context frames
     outputs are, like always, a triple of ll, l, and output
-
     """
     _, _, output_img = output
 
@@ -56,45 +70,36 @@ def save_image(output, gt_image, batch_index, context_frames, epoch_index):
     context_frames = [list(context_frame) for context_frame in zip(*context_frames)]
 
     for sample_num, (gt, output_image, contexts) in enumerate(zip(gt_image, output_img, context_frames)):
-        # Convert to numpy and scale to 0-255
-        gt_image_color = gt.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
-        output_image_color = output_image.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
-
-        # Convert to BGR for OpenCV
-        gt_image_result = cv2.cvtColor(gt_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-        output_image_result = cv2.cvtColor(output_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-
-        gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
-        output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
+        # Create image names
+        if testing:
+            gt_image_name = f"gt_batch{batch_index}_sample{sample_num}_testset.png"
+            output_image_name = f"pred_batch{batch_index}_sample{sample_num}_testset.png"
+        else:
+            gt_image_name = f"gt_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
+            output_image_name = f"pred_epoch{epoch_index}_batch{batch_index}_sample{sample_num}.png"
 
         # Create directories for each epoch, batch, sample, and frame
-        gt_write_path = os.path.join(
-            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", gt_image_name
-        )
+        if testing:
+            gt_write_path = os.path.join(args.output_dir, f"test_set", f"batch_{batch_index}", f"sample_{sample_num}")
+            output_write_path = os.path.join(args.output_dir, f"test_set", f"batch_{batch_index}", f"sample_{sample_num}")
+        else:
+            gt_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
+            output_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
 
-        output_write_path = os.path.join(
-            args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", output_image_name
-        )
+        # Save the ground-truth and prediction images
+        save_image(gt, gt_image_name, gt_write_path)
+        save_image(output_image, output_image_name, output_write_path)
 
-        # Create directories if they don't exist
-        os.makedirs(os.path.dirname(gt_write_path), exist_ok=True)
-        os.makedirs(os.path.dirname(output_write_path), exist_ok=True)
-
-        # Write images to disk
-        cv2.imwrite(gt_write_path, gt_image_result)
-        cv2.imwrite(output_write_path, output_image_result)
-
+        # Save the context frames
         for i, context in enumerate(contexts):
-            context_image_color = context.permute(1, 2, 0).cpu().clamp(0.0, 1.0).detach().numpy() * 255.0
-            context_image_result = cv2.cvtColor(context_image_color.squeeze().astype(np.uint8), cv2.COLOR_RGB2BGR)
-            context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
+            if testing:
+                context_image_name = f"context_batch{batch_index}_sample{sample_num}_frame{i}_testset.png"
+                context_write_path = os.path.join(args.output_dir, f"test_set", f"batch_{batch_index}", f"sample_{sample_num}")
+            else:
+                context_image_name = f"context_epoch{epoch_index}_batch{batch_index}_sample{sample_num}_frame{i}.png"
+                context_write_path = os.path.join(args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
             
-            context_write_path = os.path.join(
-                args.output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}", context_image_name
-            )
-
-            os.makedirs(os.path.dirname(context_write_path), exist_ok=True)
-            cv2.imwrite(context_write_path, context_image_result)
+            save_image(context, context_image_name, context_write_path)
 
 
 class ArTEMISModel(L.LightningModule):
@@ -111,6 +116,11 @@ class ArTEMISModel(L.LightningModule):
 
 
     def forward(self, images, output_frame_times):
+        """
+        Run a forward pass of the model:
+        images: a list of 4 tensors, each of shape (batch_size, 3, 256, 256)
+        output_frame_times: a batch of time steps: (batch_size, 1)
+        """
         return self.model(images, output_frame_times)
 
     
@@ -122,7 +132,7 @@ class ArTEMISModel(L.LightningModule):
 
         # every collection of batches, save the outputs
         if batch_idx % args.log_iter == 0:
-            save_image(output, gt_image, batch_index = batch_idx, context_frames=images, epoch_index = self.current_epoch)
+            save_images(output, gt_image, batch_index = batch_idx, context_frames=images, epoch_index = self.current_epoch)
  
         # log metrics for each step
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -137,6 +147,12 @@ class ArTEMISModel(L.LightningModule):
 
         # log metrics for each step
         self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
+
+        if batch_idx % args.log_iter == 0:
+            save_images(output, gt_image, batch_index = batch_idx, context_frames=images, testing=True)
+        
+        # return metrics dictionary
+        return {'loss': loss, 'psnr': psnr, 'ssim': ssim}
         
     
     def configure_optimizers(self):
@@ -151,12 +167,18 @@ class ArTEMISModel(L.LightningModule):
 
 """ Entry Point """
 
-
-def main(args):
+def test_and_train(args):
     torch.set_float32_matmul_precision("medium")
     logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
     model = ArTEMISModel(args)
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint)
+
+    # Test with Lightning: Load from checkpoint if specified
+    if args.test:
+        if args.use_checkpoint:
+            trainer.test(model, test_loader, ckpt_path=args.checkpoint_dir)
+        else:
+            trainer.test(model, test_loader)
 
     # Train with Lightning: Load from checkpoint if specified
     if args.use_checkpoint:
@@ -164,8 +186,125 @@ def main(args):
     else:
         trainer.fit(model, train_loader)
 
-    # Test the model with Lightning
-    trainer.test(model, test_loader)
+
+def read_video(video_path):
+    """
+    Read a video file and return a numpy array of individual frames
+    
+    Returns:
+    - video_frames: a list of tensors, each of shape (1, 3, 256, 256)
+    - frame_rate: the frame rate of the video
+    """
+    # Load the video file
+    capture = cv2.VideoCapture(video_path)
+   
+    if not capture.isOpened():
+        raise Exception("Error opening video file")
+    
+    frame_rate = capture.get(cv2.CAP_PROP_FPS)
+    video_frames = []
+
+    # Read the video frame by frame
+    total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    with tqdm(total=total_frames, desc="Reading video") as pbar:
+        while True:
+            ret, frame = capture.read()
+
+            if not ret:
+                break
+
+            # Convert the frame to RGB, normalize its values, and add it to the list
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = Image.fromarray(frame)
+            transform = transforms.Compose([transforms.ToTensor()])
+            frame = transform(frame).unsqueeze(0)
+            video_frames.append(frame)
+            pbar.update(1)
+
+    # Release the video capture object
+    capture.release()
+    return video_frames, frame_rate
+
+
+def save_video(frames, output_path, frame_rate):
+    """
+    Save a list of frames to a video file
+    """
+    # Define the codec and create a VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    size = (frames[0].shape[3], frames[0].shape[2])
+    out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
+
+    # Convert each frame to a numpy array and write it to the video file
+    with tqdm(total=len(frames), desc="Saving video") as pbar:
+        for frame in frames:
+            frame = frame.squeeze().permute(1, 2, 0).cpu().numpy() * 255.0
+            frame = frame.astype(np.uint8)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            out.write(frame)
+            pbar.update(1)
+
+    # Release the VideoWriter object
+    out.release()
+
+
+def video_interpolation(args):
+    """
+    Run an interpolation on a video of frames: 
+    By default, generates a frame between each pair of input frames
+    """
+    # Read the video file and send it to the GPU
+    device = torch.device('cuda' if args.cuda else 'cpu')
+    input_frames, input_frame_rate = read_video(args.input_path)
+    input_frames = [frame.to(device) for frame in input_frames]
+    
+    # Duplicate the first and last input frames
+    input_frames = [input_frames[0]] + input_frames + [input_frames[-1]]
+
+    # Load the pre-trained model
+    model = ArTEMISModel.load_from_checkpoint(args.model_path)
+    model.to(device)
+    model.eval()
+
+    # Initialize a list to store interpolated frames
+    interpolated_frames = []
+    
+    # Iterate through every window of 4 frames
+    with tqdm(range(len(input_frames) - 3), desc="Interpolating frames") as pbar:
+        for i in pbar:
+            # Extract the 4 frames and set the interpolated frame time to 0.5
+            context_frames = input_frames[i:i+4]
+            interpolated_frame_time = torch.tensor([0.5]).to(device)
+
+            # Interpolate in the exact center of the 4 frames
+            with torch.no_grad():
+                _, _, out_batch = model(context_frames, interpolated_frame_time)
+
+            # Extract the output frame
+            interpolated_frames.append(out_batch[0])
+
+    # Remove the first and last frames from the input
+    input_frames = input_frames[1:-1]
+
+    # Alternate between the input and output frames
+    output_frames = []
+
+    for i in range(len(interpolated_frames)):
+        output_frames.append(input_frames[i])
+        output_frames.append(interpolated_frames[i])
+    
+    interpolated_frames.append(input_frames[-1])
+
+    # Save the output frames to a video file
+    save_video(output_frames, args.save_path, input_frame_rate * 2)
+    print("Saved video to: ", args.save_path)
+
+
+def main(args):
+    if args.interpolate:
+        video_interpolation(args)
+    else:
+        test_and_train(args)
 
 
 if __name__ == "__main__":

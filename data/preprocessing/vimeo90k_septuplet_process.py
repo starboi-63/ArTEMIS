@@ -89,6 +89,8 @@ class VimeoSeptuplet(Dataset):
                     output_frame_time = 0.5
                 case 4:
                     output_frame_time = 0.75
+                case _: # default frame time
+                    output_frame_time = 0.5
 
             return context, ground_truth, output_frame_time
 
@@ -107,6 +109,8 @@ class VimeoSeptuplet(Dataset):
                     output_frame_time = 0.5
                 case 4:
                     output_frame_time = 0.75
+                case _: # default frame time
+                    output_frame_time = 0.5
 
             return context, ground_truth, output_frame_time
 
