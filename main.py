@@ -136,7 +136,9 @@ class ArTEMISModel(L.LightningModule):
             save_images(output, gt_image, batch_index = batch_idx, context_frames=images, epoch_index = self.current_epoch)
  
         # log metrics for each step
+        learning_rate = self.trainer.lr_scheduler_configs[0].scheduler.optimizer.param_groups[0]["lr"]
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('lr', learning_rate, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     
@@ -147,7 +149,7 @@ class ArTEMISModel(L.LightningModule):
         psnr, ssim = self.validation(output, gt_image)
 
         # log metrics for each step
-        self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
+        self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim}, on_step=True, on_epoch=False, prog_bar=True, logger=True)
 
         if batch_idx % args.log_iter == 0:
             save_images(output, gt_image, batch_index = batch_idx, context_frames=images, testing=True)
@@ -157,7 +159,7 @@ class ArTEMISModel(L.LightningModule):
         
     
     def configure_optimizers(self):
-        training_schedule = [40, 60, 75, 85, 95, 100]
+        training_schedule = [40, 85, 95, 100]
         return {
             "optimizer": self.optimizer,
             "lr_scheduler": {
