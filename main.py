@@ -11,6 +11,7 @@ import torch
 from torchvision import transforms
 
 from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import LearningRateMonitor
 from model.artemis import ArTEMIS
 from torch.optim import Adamax
 from torch.optim.lr_scheduler import MultiStepLR
@@ -170,8 +171,9 @@ class ArTEMISModel(L.LightningModule):
 def test_and_train(args):
     torch.set_float32_matmul_precision("medium")
     logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
+    lr_monitor = LearningRateMonitor(logging_interval='step')
     model = ArTEMISModel(args)
-    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint)
+    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint, callbacks=[lr_monitor])
 
     # Test with Lightning: Load from checkpoint if specified
     if args.test:
