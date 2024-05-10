@@ -159,7 +159,7 @@ class ArTEMISModel(L.LightningModule):
         
     
     def configure_optimizers(self):
-        training_schedule = [40, 85, 95, 100]
+        training_schedule = [40, 60, 75, 85, 95, 100] 
         return {
             "optimizer": self.optimizer,
             "lr_scheduler": {
