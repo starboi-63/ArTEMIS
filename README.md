@@ -58,7 +58,7 @@ To train or test the model with default settings, you will need to download the 
 
 You can also run the following command in your terminal to download the dataset. This will take some time, as the dataset is quite large.
 
-````bash
+```bash
 wget http://data.csail.mit.edu/tofu/dataset/vimeo_septuplet.zip
 ```
 
@@ -74,7 +74,7 @@ To use ArTEMIS, you can run `main.py` in your terminal with the appropriate comm
 
 ```bash
 python main.py --help
-````
+```
 
 For the `train` and `test` modes, the following command line arguments will be critical.
 
