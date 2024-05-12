@@ -36,11 +36,7 @@ if args.cuda:
 
 # Initialize DataLoaders
 if args.dataset == "vimeo90K_septuplet":
-    t0 = time.time()
-    train_loader = get_loader('train', args.data_root, args.batch_size, shuffle=True, num_workers=args.num_workers)
-    t1 = time.time()
-    test_loader = get_loader('test', args.data_root, args.test_batch_size, shuffle=False, num_workers=args.num_workers)
-    t2 = time.time()
+    data_loader = get_loader(args.mode, args.data_dir, batch_size=args.batch_size, num_workers=args.num_workers)
 else:
     print("Custom Dataset Detected")
 
@@ -170,26 +166,6 @@ class ArTEMISModel(L.LightningModule):
 
 """ Entry Point """
 
-def test_and_train(args):
-    torch.set_float32_matmul_precision("medium")
-    logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
-    lr_monitor = LearningRateMonitor(logging_interval='step')
-    model = ArTEMISModel(args)
-    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint, callbacks=[lr_monitor])
-
-    # Test with Lightning: Load from checkpoint if specified
-    if args.test:
-        if args.use_checkpoint:
-            trainer.test(model, test_loader, ckpt_path=args.checkpoint_dir)
-        else:
-            trainer.test(model, test_loader)
-
-    # Train with Lightning: Load from checkpoint if specified
-    if args.use_checkpoint:
-        trainer.fit(model, train_loader, ckpt_path=args.checkpoint_dir)
-    else:
-        trainer.fit(model, train_loader)
-
 
 def read_video(video_path):
     """
@@ -305,10 +281,27 @@ def video_interpolation(args):
 
 
 def main(args):
-    if args.interpolate:
-        video_interpolation(args)
-    else:
-        test_and_train(args)
+    torch.set_float32_matmul_precision("medium")
+    
+    logger = TensorBoardLogger(args.log_dir, name="ArTEMIS")
+    lr_monitor = LearningRateMonitor(logging_interval='step')
+    model = ArTEMISModel(args)
+    trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint, callbacks=[lr_monitor])
+
+    if args.mode == "interpolate":
+        return video_interpolation(args)
+    
+    if args.mode == "train":
+        if args.use_checkpoint:
+            return trainer.fit(model, data_loader, ckpt_path=args.checkpoint_dir)
+        else:
+            return trainer.fit(model, data_loader)
+    
+    if args.mode == "test":
+        if args.use_checkpoint:
+            return trainer.test(model, data_loader, ckpt_path=args.checkpoint_dir)
+        else:
+            return trainer.test(model, data_loader)
 
 
 if __name__ == "__main__":

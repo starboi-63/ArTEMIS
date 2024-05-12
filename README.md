@@ -8,7 +8,7 @@ ArTEMIS is a deep learning model that interleaves [VFIT](https://github.com/zhsh
 
 ### Prerequisites
 
-Ensure that you have [Python](https://www.python.org) installed on your system. To use ArTEMIS, you need to set up a Python environment with the necessary packages installed. You can do this by running the following commands in your terminal.
+ArTEMIS requires CUDA to execute. If your GPU does not support CUDA, then we also provide a [notebook file](train_google_colab.ipynb) which can be uploaded to Google Colab and executed there. If executing locally, ensure that you have [Python](https://www.python.org) installed on your system. To use ArTEMIS, you need to set up a Python environment with the necessary packages installed. You can do this by running the following commands in your terminal.
 
 First, clone the repository to your local machine.
 
@@ -40,14 +40,71 @@ Activate the virtual environment.
 source artemis-env/bin/activate
 ```
 
-Finally, install the required packages, which are listed in the `requirements.txt` file.
+Install the required packages, which are listed in the `requirements.txt` file.
 
 ```bash
 pip install -r requirements.txt
 ```
 
+Finally, depending on your hardware, you will need to install the appropriate versions of the [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit), [cuDNN](https://docs.nvidia.com/deeplearning/cudnn/latest/installation/overview.html), and [cupy](https://docs.cupy.dev/en/stable/install.html). To see what the maximum version of CUDA your GPU supports, you check the output of the following command:
+
+```bash
+nvidia-smi
+```
+
+## Vimeo-90K Septuplet Dataset
+
+To train or test the model with default settings, you will need to download the _"The original training + test set (82GB)"_ version of the Vimeo-90K Septuplet dataset. This data can be found on the official website at [http://toflow.csail.mit.edu/](http://toflow.csail.mit.edu/).
+
+You can also run the following command in your terminal to download the dataset. This will take some time, as the dataset is quite large.
+
+````bash
+wget http://data.csail.mit.edu/tofu/dataset/vimeo_septuplet.zip
+```
+
+Then, unzip the downloaded file. This will also take a few minutes.
+
+```bash
+unzip vimeo_septuplet.zip
+```
+
 ## Usage
 
-## Training
+To use ArTEMIS, you can run `main.py` in your terminal with the appropriate command line arguments. For a full list of command line arguments, execute:
 
-To train the model yourself, you will need to download the _"The original training + test set (82GB)"_ version of the Vimeo-90K Septuplet dataset. This data can be found on the official website at [http://toflow.csail.mit.edu/](http://toflow.csail.mit.edu/). The resulting data folder should be placed in the `data/sources/` directory.
+```bash
+python main.py --help
+````
+
+For the `train` and `test` modes, the following command line arguments will be critical.
+
+- `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
+- `--mode`: The mode in which to run the model. This can be either `train`, `test`, or `interpolate`.
+- `--dataset`: The dataset to use. Right now, we have only implemented the `vimeo90K_septuplet` dataset.
+- `--data_dir`: The directory containing the Vimeo-90K Septuplet dataset.
+- `--output_dir`: The directory to periodically save some output frames to while training or testing.
+- `--use_checkpoint`: Whether to use a checkpoint to initialize the model.
+- `--checkpoint_dir`: The directory containing the checkpoint file.
+- `--log_dir`: The directory to save logs to while training/testing.
+- `--log_iter`: The frequency at which to log training information and save outputs (default = 100 steps).
+- `--batch_size`: The batch size to use while training or testing.
+
+For the `interpolate` mode, the following command line arguments will be important.
+
+- `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
+- `--mode`: The mode in which to run the model. This can be either `train`, `test`, or `interpolate`.
+- `--model_path`: The path to the pre-trained model checkpoint.
+- `--input_path`: The path to the video file to interpolate frames for.
+- `--save_path`: The directory to save the interpolated frames to.
+
+For example, to train the model, you can run the following command:
+
+```bash
+python main.py --model ArTEMIS --mode train --data_dir <data_dir> --output_dir <output_dir> --log_dir <log_dir> --use_checkpoint --checkpoint_dir <checkpoint_dir> --batch_size <batch_size>
+```
+
+Alternatively, to generate intermediate frames for a video using the pre-trained model, you can run:
+
+```bash
+python main.py --model ArTEMIS --mode interpolate --model_path <model_path> --input_path <input_path> --save_path <save_path>
+```

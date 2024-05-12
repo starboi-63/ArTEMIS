@@ -8,26 +8,21 @@ import numpy as np
 
 
 class VimeoSeptuplet(Dataset):
-
-    def __init__(self, data_root, is_training):
-        # original header was   input_frames="1357", mode='mini'):
+    def __init__(self, data_dir, is_training):
         '''
         make a Vimeo Septuplet object
 
-        data_root :: root directory path for septuplet dataset from Vimeo
-        is_training :: true for training, false for testing 
-        input_frames :: ... 
-        mode :: ... 
+        data_dir :: root directory path for septuplet dataset from Vimeo
+        is_training :: true for training, false for testing
         '''
-        self.data_root = data_root
-        # 'sequences' might be specific dir
-        self.image_root = os.path.join(self.data_root, 'sequences')
+        self.data_dir = data_dir
+        # Vimeo90k dataset organizes images in a 'sequences' folder
+        self.image_root = os.path.join(self.data_dir, 'sequences')
         self.training = is_training
-        # self.inputs = input_frames
 
         # par down sep_trainlist.txt files after downloading vimeo dataset
-        train_fn = os.path.join(self.data_root, 'sep_trainlist.txt')
-        test_fn = os.path.join(self.data_root, 'sep_testlist.txt')
+        train_fn = os.path.join(self.data_dir, 'sep_trainlist.txt')
+        test_fn = os.path.join(self.data_dir, 'sep_testlist.txt')
 
         with open(train_fn, 'r') as f:
             self.trainlist = f.read().splitlines()
@@ -47,6 +42,7 @@ class VimeoSeptuplet(Dataset):
             self.transforms = transforms.Compose([
                 transforms.ToTensor()
             ])
+
 
     def __getitem__(self, index):  # dataset[index]
         if self.training:
@@ -114,6 +110,7 @@ class VimeoSeptuplet(Dataset):
 
             return context, ground_truth, output_frame_time
 
+
     def __len__(self):
         if self.training:
             return len(self.trainlist)
@@ -121,11 +118,11 @@ class VimeoSeptuplet(Dataset):
             return len(self.testlist)
 
 
-def get_loader(mode, data_root, batch_size, shuffle, num_workers, test_mode=None):
+def get_loader(mode, data_dir, batch_size, num_workers):
     is_training = True if mode == 'train' else False
+    dataset = VimeoSeptuplet(data_dir, is_training=is_training)
 
-    dataset = VimeoSeptuplet(data_root, is_training=is_training)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=is_training, num_workers=num_workers, pin_memory=True)
 
 
 def set_seed(seed=None, cuda=True): 
