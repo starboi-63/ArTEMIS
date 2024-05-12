@@ -46,7 +46,7 @@ Install the required packages, which are listed in the `requirements.txt` file.
 pip install -r requirements.txt
 ```
 
-Finally, depending on your hardware, you will need to install the appropriate versions of the [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit), [cuDNN](https://docs.nvidia.com/deeplearning/cudnn/latest/installation/overview.html), and [cupy](https://docs.cupy.dev/en/stable/install.html). To see what the maximum version of CUDA your GPU supports, you check the output of the following command:
+Finally, depending on your hardware, you will need to install the appropriate versions of the [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit), [cuDNN](https://docs.nvidia.com/deeplearning/cudnn/latest/installation/overview.html), and [cupy](https://docs.cupy.dev/en/stable/install.html). To see what the maximum version of CUDA your GPU supports, you can check the output of the following command:
 
 ```bash
 nvidia-smi
