@@ -52,7 +52,7 @@ Finally, depending on your hardware, you will need to install the appropriate ve
 nvidia-smi
 ```
 
-## Vimeo-90K Septuplet Dataset
+### Vimeo-90K Septuplet Dataset
 
 To train or test the model with default settings, you will need to download the _"The original training + test set (82GB)"_ version of the Vimeo-90K Septuplet dataset. This data can be found on the official website at [http://toflow.csail.mit.edu/](http://toflow.csail.mit.edu/).
 
