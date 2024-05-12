@@ -115,9 +115,7 @@ class WindowAttention3D(nn.Module):
         qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
     """
-
     def __init__(self, dim, window_size, num_heads, qkv_bias=False, qk_scale=None):
-
         super().__init__()
         self.dim = dim
         self.window_size = window_size  # (Wd, Wh, Ww)

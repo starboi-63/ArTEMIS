@@ -10,6 +10,7 @@ def add_argument_group(name):
     arg_lists.append(arg)
     return arg
 
+
 # Dataset selection and paths
 data_arg = add_argument_group("Dataset")
 data_arg.add_argument("--dataset", type=str, default="vimeo90K_septuplet")

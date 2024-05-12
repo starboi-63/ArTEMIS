@@ -43,7 +43,6 @@ class VimeoSeptuplet(Dataset):
                 transforms.ToTensor()
             ])
 
-
     def __getitem__(self, index):  # dataset[index]
         if self.training:
             imgpath = os.path.join(self.image_root, self.trainlist[index])
@@ -109,7 +108,6 @@ class VimeoSeptuplet(Dataset):
                     output_frame_time = 0.5
 
             return context, ground_truth, output_frame_time
-
 
     def __len__(self):
         if self.training:

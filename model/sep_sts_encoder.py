@@ -2,16 +2,6 @@ import torch.nn as nn
 from model.sep_sts_layer import SepSTSBasicLayer
 
 
-class BasicStem(nn.Sequential):
-    """The default conv-batchnorm-relu stem
-    """
-    def __init__(self, dim):
-        super().__init__(
-            nn.Conv3d(3, dim, kernel_size=(3, 3, 3), stride=(1, 2, 2),
-                padding=(1, 1, 1), bias=False),
-            nn.ReLU(inplace=False))
-
-
 class SepSTSLayer(nn.Module):
     def __init__(self, plane, depth, num_frames, num_heads, window_size):
         super(SepSTSLayer, self).__init__()
@@ -40,21 +30,7 @@ class ResBlock(nn.Module):
         return self.relu(x)
 
 
-class ResLayer(nn.Module):
-    def __init__(self, plane, num_layer, kernel_size=3):
-        super(ResLayer, self).__init__()
-        self.layer = nn.ModuleList()
-        for i in range(num_layer):
-            self.layer.append(ResBlock(plane, kernel_size=kernel_size))
-
-        self.layer = nn.Sequential(*self.layer)
-
-    def forward(self, x):
-        return self.layer(x)
-
-
 class SepSTSEncoder(nn.Module):
-
     def __init__(self, nf, NF, window_size, nh):
         super(SepSTSEncoder, self).__init__()
         self.stem = nn.Sequential(

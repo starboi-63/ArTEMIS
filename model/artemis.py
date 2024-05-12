@@ -8,8 +8,6 @@ from model.helper_modules import upSplit, joinTensors, Conv_3d
 class ArTEMIS(nn.Module):
     def __init__(self, num_inputs=4, joinType="concat", kernel_size=5, dilation=1): 
         super().__init__()
-
-        # TODO: Change num_features to [512, 256, 128, 64] if we want to scale up model 
         # num_features = [192, 128, 64, 32] # For small model with ~7 million parameters
         num_features = [512, 256, 128, 64] # For large model with ~30 million parameters
         # For Sep-STS (Separated-Spatio-Temporal-SWIN) Encoder
@@ -49,7 +47,6 @@ class ArTEMIS(nn.Module):
         self.predict3 = ChronoSynth(
             num_inputs, num_features_out, kernel_size, dilation, apply_softmax=False)
         
-    
     def forward(self, frames, output_frame_times):
         '''
         Performs the forward pass for each output frame needed, a number of times equal to num_outputs.
@@ -57,7 +54,6 @@ class ArTEMIS(nn.Module):
         frames: input frames
         output_frame_times: batch of arbitrary 't' from 0 to 1
         '''
-
         images = torch.stack(frames, dim=2)
         # Sanity check that the input frames are in the correct shape
         B, C, T, H, W = images.shape

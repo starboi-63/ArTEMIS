@@ -98,12 +98,10 @@ class ChronoSynth(nn.Module):
             time_tensor[:, :, i - start, :, :] *= time_differences.view(B, 1, 1, 1)
         # -------------------------------------------------------------------------------------------
 
-
         # Concatenate the time tensor to the channel dimension of the features
         features = torch.cat([features, time_tensor], 1)
         occ = torch.cat(torch.unbind(features, 1), 1)
         occ = self.lrelu(self.feature_fuse(occ))
-
 
         # Reshape the features so that the synthesis module can solely utilize CxHxW
         features = features.transpose(1, 2).reshape(B*T, C + 1, cur_H, cur_W)

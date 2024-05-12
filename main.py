@@ -111,7 +111,6 @@ class ArTEMISModel(L.LightningModule):
         self.loss = Loss(args)
         self.validation = eval_metrics
 
-
     def forward(self, images, output_frame_times):
         """
         Run a forward pass of the model:
@@ -120,7 +119,6 @@ class ArTEMISModel(L.LightningModule):
         """
         return self.model(images, output_frame_times)
 
-    
     def training_step(self, batch, batch_idx):
         images, gt_image, output_frame_times = batch
 
@@ -137,7 +135,6 @@ class ArTEMISModel(L.LightningModule):
         self.log('lr', learning_rate, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
-    
     def test_step(self, batch, batch_idx):
         images, gt_image, output_frame_times = batch
         output = self.model(images, output_frame_times)
@@ -152,7 +149,6 @@ class ArTEMISModel(L.LightningModule):
         
         # return metrics dictionary
         return {'loss': loss, 'psnr': psnr, 'ssim': ssim}
-        
     
     def configure_optimizers(self):
         training_schedule = [40, 60, 75, 85, 95, 100] 

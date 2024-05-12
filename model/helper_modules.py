@@ -12,8 +12,8 @@ class upSplit(nn.Module):
         x = self.upconv(x, output_size=output_size)
         return x
     
-def joinTensors(X1, X2, type="concat"):
 
+def joinTensors(X1, X2, type="concat"):
     if type == "concat":
         return torch.cat([X1, X2], dim=1)
     elif type == "add":
@@ -23,7 +23,6 @@ def joinTensors(X1, X2, type="concat"):
 
 
 class Conv_2d(nn.Module):
-
     def __init__(self, in_ch, out_ch, kernel_size, stride=1, padding=0, bias=False, batchnorm=False):
         super().__init__()
         self.conv = [nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)]
