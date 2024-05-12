@@ -149,7 +149,7 @@ class ArTEMISModel(L.LightningModule):
         psnr, ssim = self.validation(output, gt_image)
 
         # log metrics for each step
-        self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim}, on_step=True, on_epoch=False, prog_bar=True, logger=True)
+        self.log_dict({'test_loss': loss, 'psnr': psnr, 'ssim': ssim})
 
         if batch_idx % args.log_iter == 0:
             save_images(output, gt_image, batch_index = batch_idx, context_frames=images, testing=True)
