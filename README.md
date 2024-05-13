@@ -93,7 +93,7 @@ For the `interpolate` mode, the following command line arguments will be importa
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
 - `--mode`: The mode in which to run the model. This can be either `train`, `test`, or `interpolate`.
-- `--model_path`: The path to the pre-trained model checkpoint.
+- `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file in the project root directory.
 - `--input_path`: The path to the video file to interpolate frames for.
 - `--save_path`: The directory to save the interpolated frames to.
 
