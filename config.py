@@ -19,20 +19,26 @@ data_arg.add_argument("--dataset", type=str, default="vimeo90K_septuplet")
 model_arg = add_argument_group("Model")
 model_choices = ["ArTEMIS"]
 model_arg.add_argument("--model", choices=model_choices, type=str, default="ArTEMIS")
-model_modes = ["train", "test", "interpolate"]
-model_arg.add_argument("--mode", choices=model_modes, type=str, default="interpolate")
+model_modes = ["train", "test", "interpolate_video", "interpolate_singleton"]
+model_arg.add_argument("--mode", choices=model_modes, type=str, default="interpolate_video")
 model_arg.add_argument("--nbr_frame", type=int, default=4)
 model_arg.add_argument("--joinType", choices=["concat", "add", "none"], default="concat")
 model_arg.add_argument("--kernel_size", type=int, default=5)
 model_arg.add_argument("--dilation", type=int, default=1)
 model_arg.add_argument("--num_outputs", type=int, default=3)
 
-# Evaluation Parameters
-eval_arg = add_argument_group("Evaluation")
-eval_arg.add_argument("--time_step", type=float, default=0.5, help ="Arbitrary time step from 0-1.")
-eval_arg.add_argument("--model_path", type=str, help="Path to the pretrained model parameters.")
-eval_arg.add_argument("--input_path", type=str, help="Path to the input video that will be interpolated.")
-eval_arg.add_argument("--save_path", type=str, help="Path to save the interpolated video output.")
+# Interpolation parameters
+interpolate_arg = add_argument_group("Interpolation")
+# Video interpolation
+interpolate_arg.add_argument("--model_path", type=str, help="Path to the pretrained model parameters.")
+interpolate_arg.add_argument("--input_path", type=str, help="Path to the input video that will be interpolated.")
+interpolate_arg.add_argument("--save_path", type=str, help="Path to save the interpolated output.")
+# Singleton interpolation
+interpolate_arg.add_argument("--frame1_path", type=str, help="Path to the first context frame.")
+interpolate_arg.add_argument("--frame2_path", type=str, help="Path to the second context frame.")
+interpolate_arg.add_argument("--frame3_path", type=str, help="Path to the third context frame.")
+interpolate_arg.add_argument("--frame4_path", type=str, help="Path to the fourth context frame.")
+interpolate_arg.add_argument("--timesteps", type=list[int], default=[0.5], help ="List of timesteps from 0-1 to interpolate.")
 
 # Training parameters
 learn_arg = add_argument_group("Learning")

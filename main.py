@@ -95,7 +95,7 @@ class ArTEMISModel(L.LightningModule):
         }
 
 
-def video_interpolation(args):
+def interpolate_video(args):
     """
     Run an interpolation on a video of frames: 
     By default, generates a frame between each pair of input frames
@@ -147,6 +147,10 @@ def video_interpolation(args):
     print("Saved video to: ", args.save_path)
 
 
+def interpolate_singleton(args):
+    pass
+    
+
 def main(args):
     torch.set_float32_matmul_precision("medium")
     
@@ -155,8 +159,11 @@ def main(args):
     model = ArTEMISModel(args)
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint, callbacks=[lr_monitor])
 
-    if args.mode == "interpolate":
-        return video_interpolation(args)
+    if args.mode == "interpolate_video":
+        return interpolate_video(args)
+    
+    if args.mode == "interpolate_singleton":
+        return interpolate_singleton(args)
     
     if args.mode == "train":
         if args.use_checkpoint:

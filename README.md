@@ -76,10 +76,12 @@ To use ArTEMIS, you can run `main.py` in your terminal with the appropriate comm
 python main.py --help
 ```
 
+There are four modes in which you can run the model: `train`, `test`, `interpolate_video`, and `interpolate_singleton`. The `train` and `test` modes are used to train/test the model on the Vimeo-90K Septuplet dataset respectively. The `interpolate_video` mode is used to upsample an inputted video to a higher frame rate. Finally, the `interpolate_singleton` mode is used to generate interpolated frames between a single window of four context frames.
+
 For the `train` and `test` modes, the following command line arguments will be critical.
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
-- `--mode`: The mode in which to run the model. This can be either `train`, `test`, or `interpolate`.
+- `--mode`: The mode in which to run the model. This can be either `train`, `test`, `interpolate_video`, or `interpolate_singleton`.
 - `--dataset`: The dataset to use. Right now, we have only implemented the `vimeo90K_septuplet` dataset.
 - `--data_dir`: The directory containing the Vimeo-90K Septuplet dataset.
 - `--output_dir`: The directory to periodically save some output frames to while training or testing.
@@ -89,12 +91,24 @@ For the `train` and `test` modes, the following command line arguments will be c
 - `--log_iter`: The frequency at which to log training information and save outputs (default = 100 steps).
 - `--batch_size`: The batch size to use while training or testing.
 
-For the `interpolate` mode, the following command line arguments will be important.
+For the `interpolate_video` mode, the following command line arguments will be important.
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
-- `--mode`: The mode in which to run the model. This can be either `train`, `test`, or `interpolate`.
+- `--mode`: The mode in which to run the model.
 - `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file in the project root directory.
 - `--input_path`: The path to the video file to interpolate frames for.
+- `--save_path`: The directory to save the interpolated frames to.
+
+For the `interpolate_singleton` mode, the following command line arguments must be used.
+
+- `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
+- `--mode`: The mode in which to run the model.
+- `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file in the project root directory.
+- `--frame1_path`: The path to the first context frame (before the interpolated frame in time).
+- `--frame2_path`: The path to the second context frame (before the interpolated frame in time).
+- `--frame3_path`: The path to the third context frame (after the interpolated frame in time).
+- `--frame4_path`: The path to the fourth context frame (after the interpolated frame in time).
+- `--timesteps`: A list of timesteps in the range (0,1) to interpolate frames for.
 - `--save_path`: The directory to save the interpolated frames to.
 
 For example, to train the model, you can run the following command:
@@ -106,5 +120,11 @@ python main.py --model ArTEMIS --mode train --data_dir <data_dir> --output_dir <
 Alternatively, to generate intermediate frames for a video using the pre-trained model, you can run:
 
 ```bash
-python main.py --model ArTEMIS --mode interpolate --model_path <model_path> --input_path <input_path> --save_path <save_path>
+python main.py --model ArTEMIS --mode interpolate_video --model_path <model_path> --input_path <input_path> --save_path <save_path>
+```
+
+Finally, to generate intermediate frames for a single window of context frames, you can run:
+
+```bash
+python main.py --model ArTEMIS --mode interpolate_singleton --model_path <model_path> --frame1_path <frame1_path> --frame2_path <frame2_path> --frame3_path <frame3_path> --frame4_path <frame4_path> --timesteps <timesteps> --save_path <save_path>
 ```
