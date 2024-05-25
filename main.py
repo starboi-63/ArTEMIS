@@ -11,7 +11,7 @@ from loss import Loss
 from metrics import eval_metrics
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
 from tqdm import tqdm
-from utils import save_images, read_video, save_video
+from utils import read_image, save_image, save_images, read_video, save_video
 
 
 # Parse command line arguments
@@ -148,7 +148,30 @@ def interpolate_video(args):
 
 
 def interpolate_singleton(args):
-    pass
+    """
+    Generate interpolated frames between a single set of four context frames.
+    """
+    device = torch.device('cuda' if args.cuda else 'cpu')
+
+    # Load the pre-trained model
+    model = ArTEMISModel.load_from_checkpoint(args.model_path)
+    model.to(device)
+    model.eval()
+
+    # Read in the context frames
+    paths = [args.frame1_path, args.frame2_path, args.frame3_path, args.frame4_path]
+    context_frames = [read_image(path).to(device) for path in paths]
+
+    # Run the forward pass of the model to generate the interpolated frames
+    timesteps = torch.tensor(args.timesteps).to(device)
+
+    with tqdm(timesteps, desc="Interpolating frames") as pbar:
+        for timestep in pbar:
+            with torch.no_grad():
+                _, _, out_batch = model(context_frames, timestep)
+    
+            # Save the interpolated frame
+            save_image(out_batch[0], f"frame_t={timestep}", args.save_path)
     
 
 def main(args):

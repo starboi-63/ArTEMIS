@@ -81,7 +81,7 @@ There are four modes in which you can run the model: `train`, `test`, `interpola
 For the `train` and `test` modes, the following command line arguments will be critical.
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
-- `--mode`: The mode in which to run the model. This can be either `train`, `test`, `interpolate_video`, or `interpolate_singleton`.
+- `--mode`: The mode in which to run the model. This can be either `train` or `test`.
 - `--dataset`: The dataset to use. Right now, we have only implemented the `vimeo90K_septuplet` dataset.
 - `--data_dir`: The directory containing the Vimeo-90K Septuplet dataset.
 - `--output_dir`: The directory to periodically save some output frames to while training or testing.
@@ -94,7 +94,7 @@ For the `train` and `test` modes, the following command line arguments will be c
 For the `interpolate_video` mode, the following command line arguments will be important.
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
-- `--mode`: The mode in which to run the model.
+- `--mode`: The mode in which to run the model. Should be set to `interpolate_video`.
 - `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file in the project root directory.
 - `--input_path`: The path to the video file to interpolate frames for.
 - `--save_path`: The directory to save the interpolated frames to.
@@ -102,7 +102,7 @@ For the `interpolate_video` mode, the following command line arguments will be i
 For the `interpolate_singleton` mode, the following command line arguments must be used.
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
-- `--mode`: The mode in which to run the model.
+- `--mode`: The mode in which to run the model. Should be set to `interpolate_singleton`.
 - `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file in the project root directory.
 - `--frame1_path`: The path to the first context frame (before the interpolated frame in time).
 - `--frame2_path`: The path to the second context frame (before the interpolated frame in time).

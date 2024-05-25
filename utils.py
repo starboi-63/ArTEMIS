@@ -6,6 +6,17 @@ from PIL import Image
 from torchvision import transforms
 
 
+def read_image(path):
+    """
+    Read an image from disk and return it as a tensor
+    """
+    image = Image.open(path)
+    transform = transforms.Compose([transforms.ToTensor()])
+    image = transform(image)
+    # TODO: do I need to '.unsqueeze(0)' here?
+    return image
+
+
 def save_image(image, name, path):
     """
     Save an image to disk
