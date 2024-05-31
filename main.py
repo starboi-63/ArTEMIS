@@ -163,7 +163,7 @@ def interpolate_singleton(args):
     context_frames = [read_image(path).to(device) for path in paths]
 
     # Run the forward pass of the model to generate the interpolated frames
-    timesteps = "".join(args.timestep.split()).split(",")
+    timesteps = "".join(args.timesteps.split()).split(",")
     timesteps = torch.tensor(timesteps).to(device)
 
     with tqdm(timesteps, desc="Interpolating frames") as pbar:
