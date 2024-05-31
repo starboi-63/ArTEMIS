@@ -164,6 +164,11 @@ def interpolate_singleton(args):
 
     # Run the forward pass of the model to generate the interpolated frames
     timesteps = "".join(args.timesteps.split()).split(",")
+
+    print(timesteps)
+    print(type(timesteps))
+    print(type(timesteps[0]))
+    
     timesteps = torch.tensor(timesteps).to(device)
 
     with tqdm(timesteps, desc="Interpolating frames") as pbar:
