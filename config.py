@@ -38,7 +38,7 @@ interpolate_arg.add_argument("--frame1_path", type=str, help="Path to the first 
 interpolate_arg.add_argument("--frame2_path", type=str, help="Path to the second context frame.")
 interpolate_arg.add_argument("--frame3_path", type=str, help="Path to the third context frame.")
 interpolate_arg.add_argument("--frame4_path", type=str, help="Path to the fourth context frame.")
-interpolate_arg.add_argument("--timesteps", type=list[int], default=[0.5], help ="List of timesteps from 0-1 to interpolate.")
+interpolate_arg.add_argument("--timesteps", type=str, default="0.5", help ="Comma-separated list of timesteps from 0-1 to interpolate (e.g. '0.25, 0.5, 0.75').")
 
 # Training parameters
 learn_arg = add_argument_group("Learning")

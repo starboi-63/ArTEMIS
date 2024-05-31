@@ -151,9 +151,6 @@ def interpolate_singleton(args):
     """
     Generate interpolated frames between a single set of four context frames.
     """
-    print(args.timesteps)
-    print(type(args.timesteps))
-    
     device = torch.device('cuda' if args.cuda else 'cpu')
 
     # Load the pre-trained model
@@ -166,7 +163,8 @@ def interpolate_singleton(args):
     context_frames = [read_image(path).to(device) for path in paths]
 
     # Run the forward pass of the model to generate the interpolated frames
-    timesteps = torch.tensor(args.timesteps).to(device)
+    timesteps = "".join(args.timestep.split()).split(",")
+    timesteps = torch.tensor(timesteps).to(device)
 
     with tqdm(timesteps, desc="Interpolating frames") as pbar:
         for timestep in pbar:

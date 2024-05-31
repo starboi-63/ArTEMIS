@@ -108,7 +108,7 @@ For the `interpolate_singleton` mode, the following command line arguments must 
 - `--frame2_path`: The path to the second context frame (before the interpolated frame in time).
 - `--frame3_path`: The path to the third context frame (after the interpolated frame in time).
 - `--frame4_path`: The path to the fourth context frame (after the interpolated frame in time).
-- `--timesteps`: A list of timesteps in the range (0,1) to interpolate frames for.
+- `--timesteps`: A comma-separated list of timesteps in the range (0,1) to interpolate frames for (e.g. `'0.25, 0.5, 0.75'`).
 - `--save_path`: The directory to save the interpolated frames to.
 
 For example, to train the model, you can run the following command:
