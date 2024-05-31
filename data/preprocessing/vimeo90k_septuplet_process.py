@@ -117,9 +117,12 @@ class VimeoSeptuplet(Dataset):
 
 
 def get_loader(mode, data_dir, batch_size, num_workers):
-    is_training = True if mode == 'train' else False
-    dataset = VimeoSeptuplet(data_dir, is_training=is_training)
+    # If just running a forward pass, no need to construct a DataLoader
+    if mode not in ['train', 'test']:
+        return None
 
+    is_training = mode == 'train'
+    dataset = VimeoSeptuplet(data_dir, is_training=is_training)
     return DataLoader(dataset, batch_size=batch_size, shuffle=is_training, num_workers=num_workers, pin_memory=True)
 
 
