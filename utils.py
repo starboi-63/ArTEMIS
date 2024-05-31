@@ -10,7 +10,7 @@ def read_image(path):
     """
     Read an image from disk and return it as a tensor
     """
-    image = Image.open(path)
+    image = Image.open(path).convert('RGB')
     transform = transforms.Compose([transforms.ToTensor()])
     image = transform(image).unsqueeze(0)
     return image
