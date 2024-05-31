@@ -12,8 +12,7 @@ def read_image(path):
     """
     image = Image.open(path)
     transform = transforms.Compose([transforms.ToTensor()])
-    image = transform(image)
-    # TODO: do I need to '.unsqueeze(0)' here?
+    image = transform(image).unsqueeze(0)
     return image
 
 
