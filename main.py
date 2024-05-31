@@ -160,7 +160,7 @@ def interpolate_singleton(args):
 
     # Read in the context frames
     paths = [args.frame1_path, args.frame2_path, args.frame3_path, args.frame4_path]
-    context_frames = [read_image(path).to(device) for path in paths]
+    context_frames = [read_image(path).to(device) for path in paths].unsqueeze(0)
 
     # Run the forward pass of the model to generate the interpolated frames
     timesteps = "".join(args.timesteps.split()).split(",")
