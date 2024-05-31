@@ -151,6 +151,9 @@ def interpolate_singleton(args):
     """
     Generate interpolated frames between a single set of four context frames.
     """
+    print(args.timesteps)
+    print(type(args.timesteps))
+    
     device = torch.device('cuda' if args.cuda else 'cpu')
 
     # Load the pre-trained model
