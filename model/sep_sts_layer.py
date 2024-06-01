@@ -135,7 +135,7 @@ class WindowAttention3D(nn.Module):
         coords_h = torch.arange(self.window_size[1])
         coords_w = torch.arange(self.window_size[2])
         # Meshgrid returns three tensors of shape (Wd, Wh, Ww), so we stack them together into a single tensor
-        coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w))  # (3, Wd, Wh, Ww)
+        coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w), indexing='ij')  # (3, Wd, Wh, Ww)
         # Flatten the coordinates into a 1D tensor for each dimension
         coords_flattened = torch.flatten(coords, 1)  # (3, Wd*Wh*Ww)
         # Encode relative position of each token w.r.t. every other token within the window by subtracting two broadcasted tensors:
