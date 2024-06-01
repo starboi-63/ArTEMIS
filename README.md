@@ -95,7 +95,7 @@ For the `interpolate_video` mode, the following command line arguments will be i
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
 - `--mode`: The mode in which to run the model. Should be set to `interpolate_video`.
-- `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file in the project root directory.
+- `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file on [Google Drive](https://drive.google.com/file/d/1JibdJDBeTXlMbvqwdV_4r86kVUwk8u9C/view?usp=share_link).
 - `--input_path`: The path to the video file to interpolate frames for.
 - `--save_path`: The directory to save the interpolated frames to.
 
@@ -103,7 +103,7 @@ For the `interpolate_singleton` mode, the following command line arguments must 
 
 - `--model`: The model to use. Right now, we have only implemented the `ArTEMIS` model.
 - `--mode`: The mode in which to run the model. Should be set to `interpolate_singleton`.
-- `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file in the project root directory.
+- `--model_path`: The path to the pre-trained model checkpoint. We provide a `model.ckpt` file on [Google Drive](https://drive.google.com/file/d/1JibdJDBeTXlMbvqwdV_4r86kVUwk8u9C/view?usp=share_link).
 - `--frame1_path`: The path to the first context frame (before the interpolated frame in time).
 - `--frame2_path`: The path to the second context frame (before the interpolated frame in time).
 - `--frame3_path`: The path to the third context frame (after the interpolated frame in time).
