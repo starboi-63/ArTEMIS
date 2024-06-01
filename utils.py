@@ -102,7 +102,7 @@ def read_video(video_path):
 
             # Convert the frame to RGB, normalize its values, and add it to the list
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame = Image.fromarray(frame)
+            frame = Image.fromarray(frame).convert('RGB')
             transform = transforms.Compose([transforms.ToTensor()])
             frame = transform(frame).unsqueeze(0)
             video_frames.append(frame)
