@@ -173,7 +173,7 @@ def interpolate_singleton(args):
                 _, _, out_batch = model(context_frames, timestep)
     
             # Save the interpolated frame
-            save_image(out_batch[0], f"frame_t={timestep}", args.save_path)
+            save_image(out_batch[0], f"frame_t={timestep}.png", args.save_path)
     
 
 def main(args):
