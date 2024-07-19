@@ -95,59 +95,7 @@ class ArTEMISModel(L.LightningModule):
         }
 
 
-def interpolate_video(args):
-    """
-    Run an interpolation on a video of frames: 
-    By default, generates a frame between each pair of input frames
-    """
-    # Read the video file and send it to the GPU
-    device = torch.device('cuda' if args.cuda else 'cpu')
-    input_frames, input_frame_rate = read_video(args.input_path)
-    input_frames = [frame.to(device) for frame in input_frames]
-    
-    # Duplicate the first and last input frames
-    input_frames = [input_frames[0]] + input_frames + [input_frames[-1]]
-
-    # Load the pre-trained model
-    model = ArTEMISModel.load_from_checkpoint(args.model_path)
-    model.to(device)
-    model.eval()
-
-    # Initialize a list to store interpolated frames
-    interpolated_frames = []
-    
-    # Iterate through every window of 4 frames
-    with tqdm(range(len(input_frames) - 3), desc="Interpolating frames") as pbar:
-        for i in pbar:
-            # Extract the 4 frames and set the interpolated frame time to 0.5
-            context_frames = input_frames[i:i+4]
-            interpolated_frame_time = torch.tensor([0.5]).to(device)
-
-            # Interpolate in the exact center of the 4 frames
-            with torch.no_grad():
-                _, _, out_batch = model(context_frames, interpolated_frame_time)
-
-            # Extract the output frame
-            interpolated_frames.append(out_batch[0])
-
-    # Remove the first and last frames from the input
-    input_frames = input_frames[1:-1]
-
-    # Alternate between the input and output frames
-    output_frames = []
-
-    for i in range(len(interpolated_frames)):
-        output_frames.append(input_frames[i])
-        output_frames.append(interpolated_frames[i])
-    
-    interpolated_frames.append(input_frames[-1])
-
-    # Save the output frames to a video file
-    save_video(output_frames, args.save_path, input_frame_rate * 2)
-    print("Saved video to: ", args.save_path)
-
-
-def interpolate_singleton(args):
+def interpolate(args):
     """
     Generate interpolated frames between a single set of four context frames.
     """
@@ -183,12 +131,9 @@ def main(args):
     lr_monitor = LearningRateMonitor(logging_interval='step')
     model = ArTEMISModel(args)
     trainer = L.Trainer(max_epochs=args.max_epoch, log_every_n_steps=args.log_iter, logger=logger, enable_checkpointing=args.use_checkpoint, callbacks=[lr_monitor])
-
-    if args.mode == "interpolate_video":
-        return interpolate_video(args)
     
-    if args.mode == "interpolate_singleton":
-        return interpolate_singleton(args)
+    if args.mode == "interpolate":
+        return interpolate(args)
     
     if args.mode == "train":
         if args.use_checkpoint:

@@ -19,8 +19,8 @@ data_arg.add_argument("--dataset", type=str, default="vimeo90K_septuplet")
 model_arg = add_argument_group("Model")
 model_choices = ["ArTEMIS"]
 model_arg.add_argument("--model", choices=model_choices, type=str, default="ArTEMIS")
-model_modes = ["train", "test", "interpolate_video", "interpolate_singleton"]
-model_arg.add_argument("--mode", choices=model_modes, type=str, default="interpolate_video")
+model_modes = ["train", "test", "interpolate"]
+model_arg.add_argument("--mode", choices=model_modes, type=str, default="interpolate")
 model_arg.add_argument("--nbr_frame", type=int, default=4)
 model_arg.add_argument("--joinType", choices=["concat", "add", "none"], default="concat")
 model_arg.add_argument("--kernel_size", type=int, default=5)
@@ -29,11 +29,8 @@ model_arg.add_argument("--num_outputs", type=int, default=3)
 
 # Interpolation parameters
 interpolate_arg = add_argument_group("Interpolation")
-# Video interpolation
-interpolate_arg.add_argument("--model_path", type=str, help="Path to the pretrained model parameters.")
-interpolate_arg.add_argument("--input_path", type=str, help="Path to the input video that will be interpolated.")
+interpolate_arg.add_argument("--model_path", type=str, help="Path to the pretrained model.")
 interpolate_arg.add_argument("--save_path", type=str, help="Path to save the interpolated output.")
-# Singleton interpolation
 interpolate_arg.add_argument("--frame1_path", type=str, help="Path to the first context frame.")
 interpolate_arg.add_argument("--frame2_path", type=str, help="Path to the second context frame.")
 interpolate_arg.add_argument("--frame3_path", type=str, help="Path to the third context frame.")
