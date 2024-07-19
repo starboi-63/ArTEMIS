@@ -1,7 +1,6 @@
 import os
 import cv2
 import numpy as np
-from tqdm import tqdm
 from PIL import Image
 from torchvision import transforms
 
@@ -72,64 +71,3 @@ def save_images(output, gt_image, batch_index, context_frames, output_dir, epoch
                 context_write_path = os.path.join(output_dir, f"epoch_{epoch_index}", f"batch_{batch_index}", f"sample_{sample_num}")
             
             save_image(context, context_image_name, context_write_path)
-
-
-def read_video(video_path):
-    """
-    Read a video file and return a numpy array of individual frames
-    
-    Returns:
-    - video_frames: a list of tensors, each of shape (1, 3, 256, 256)
-    - frame_rate: the frame rate of the video
-    """
-    # Load the video file
-    capture = cv2.VideoCapture(video_path)
-   
-    if not capture.isOpened():
-        raise Exception("Error opening video file")
-    
-    frame_rate = capture.get(cv2.CAP_PROP_FPS)
-    video_frames = []
-
-    # Read the video frame by frame
-    total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-    with tqdm(total=total_frames, desc="Reading video") as pbar:
-        while True:
-            ret, frame = capture.read()
-
-            if not ret:
-                break
-
-            # Convert the frame to RGB, normalize its values, and add it to the list
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame = Image.fromarray(frame).convert('RGB')
-            transform = transforms.Compose([transforms.ToTensor()])
-            frame = transform(frame).unsqueeze(0)
-            video_frames.append(frame)
-            pbar.update(1)
-
-    # Release the video capture object
-    capture.release()
-    return video_frames, frame_rate
-
-
-def save_video(frames, output_path, frame_rate):
-    """
-    Save a list of frames to a video file
-    """
-    # Define the codec and create a VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    size = (frames[0].shape[3], frames[0].shape[2])
-    out = cv2.VideoWriter(output_path, fourcc, frame_rate, size)
-
-    # Convert each frame to a numpy array and write it to the video file
-    with tqdm(total=len(frames), desc="Saving video") as pbar:
-        for frame in frames:
-            frame = frame.squeeze().permute(1, 2, 0).cpu().numpy() * 255.0
-            frame = frame.astype(np.uint8)
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            out.write(frame)
-            pbar.update(1)
-
-    # Release the VideoWriter object
-    out.release()

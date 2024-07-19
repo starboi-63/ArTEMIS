@@ -11,7 +11,7 @@ from loss import Loss
 from metrics import eval_metrics
 from data.preprocessing.vimeo90k_septuplet_process import get_loader
 from tqdm import tqdm
-from utils import read_image, save_image, save_images, read_video, save_video
+from utils import read_image, save_image, save_images
 
 
 # Parse command line arguments
