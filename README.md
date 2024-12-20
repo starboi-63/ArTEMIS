@@ -2,7 +2,7 @@
 
 Arbitrary timestep Transformer for Enhanced Multi-frame Interpolation and Synthesis.
 
-> If you are interested in the model architecture and results, please visit ArTEMIS's [project website](https://tanishmakadia.com/projects/artemis).
+> By Andrew Chen, Kazuya Erdos, Alaina Lin, and Tanish Makadia; originally created for the CSCI 2470 (Deep Learning) final project at Brown University. If you are interested in the model architecture and results, I made a writeup on my [personal website](https://tanishmakadia.com/projects/artemis).
 
 ## Getting Started
 
